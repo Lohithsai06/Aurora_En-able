@@ -338,19 +338,15 @@ export default function BlindTTS() {
               <span>Speak Text</span>
             </div>
             <div className="shortcut-item">
-              <kbd>S</kbd>
+              <kbd>SHIFT</kbd>
               <span>Stop</span>
             </div>
             <div className="shortcut-item">
-              <kbd>R</kbd>
+              <kbd>CTRL</kbd>
               <span>Replay</span>
             </div>
             <div className="shortcut-item">
-              <kbd>C</kbd>
-              <span>Clear Text</span>
-            </div>
-            <div className="shortcut-item">
-              <kbd>B</kbd>
+              <kbd>ESC</kbd>
               <span>Back to Menu</span>
             </div>
           </div>
