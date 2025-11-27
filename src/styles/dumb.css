@@ -361,7 +361,13 @@
 }
 
 /* Webcam Section */
-/* FIXED - Webcam Section with Side-by-Side Layout */
+/* Top Section - Webcam and Gesture Display */
+.gesture-top-section {
+  margin-top: 20px;
+  margin-bottom: 30px;
+  padding: 10px;
+}
+
 .webcam-section {
   margin-top: 2rem;
   padding: 2rem;
@@ -413,6 +419,40 @@
   pointer-events: none;
 }
 
+/* Fast Mode Indicator Overlay */
+.fast-mode-indicator {
+  position: absolute;
+  top: 15px;
+  right: 15px;
+  background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+  color: #78350f;
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-weight: 700;
+  font-size: 0.875rem;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  box-shadow: 0 4px 12px rgba(251, 191, 36, 0.4);
+  animation: pulse-glow 2s ease-in-out infinite;
+  z-index: 10;
+}
+
+.fast-icon {
+  font-size: 1.1rem;
+  animation: flash 1.5s ease-in-out infinite;
+}
+
+.fast-text {
+  letter-spacing: 0.05em;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+@keyframes flash {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.7; transform: scale(1.1); }
+}
+
 .webcam-placeholder {
   display: flex;
   flex-direction: column;
@@ -445,13 +485,13 @@
 
 /* Right - Gesture Display Panel */
 .gesture-display-panel {
-  padding: 30px;
-  border-radius: 20px;
-  background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+  padding: 25px;
+  border-radius: 18px;
+  background: linear-gradient(135deg, #e0f7ff 0%, #f0f9ff 100%);
   text-align: center;
-  min-width: 350px;
+  min-width: 280px;
   max-width: 400px;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
@@ -468,7 +508,7 @@
 
 .gesture-text {
   font-size: 3.5rem;
-  font-weight: 800;
+  font-weight: 900;
   line-height: 1.2;
   padding: 2rem;
   border-radius: 16px;
@@ -1650,6 +1690,12 @@
     width: 100%;
   }
 
+  .gesture-top-section {
+    margin-top: 10px;
+    margin-bottom: 20px;
+    padding: 5px;
+  }
+
   .gesture-layout {
     flex-direction: column;
     gap: 1rem;
@@ -1667,6 +1713,13 @@
 
   .gesture-text {
     font-size: 2.5rem;
+  }
+
+  .fast-mode-indicator {
+    top: 10px;
+    right: 10px;
+    padding: 6px 12px;
+    font-size: 0.75rem;
   }
 
   .webcam-wrapper,

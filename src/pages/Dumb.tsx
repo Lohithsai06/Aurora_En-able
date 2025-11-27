@@ -41,6 +41,7 @@ export default function Dumb() {
   const [selectedVoice, setSelectedVoice] = useState<SpeechSynthesisVoice | null>(null);
   const [activePhrase, setActivePhrase] = useState<string | null>(null);
   const [sentenceBuilder, setSentenceBuilder] = useState<string[]>([]);
+  const [fastMode, setFastMode] = useState<boolean>(true); // Fast gesture mode enabled by default
   
   // Chapter 7 - New State Variables
   const [smartSuggestions, setSmartSuggestions] = useState<string[]>([]);
@@ -709,27 +710,28 @@ Return ONLY the 3 alternative sentences, one per line, no numbering, no labels, 
     return null;
   };
 
-  // Update output with stability check
+  // Update output with stability check (5 frames, 3/5 consensus)
   const updateGestureOutput = async (gesture: string) => {
     // Add to buffer
     gestureBufferRef.current.push(gesture);
     
-    // Keep only last 3 frames
-    if (gestureBufferRef.current.length > 3) {
+    // Keep only last 5 frames for better stability
+    if (gestureBufferRef.current.length > 5) {
       gestureBufferRef.current.shift();
     }
     
-    // Check if gesture is stable (appears in at least 3 frames)
-    if (gestureBufferRef.current.length === 3) {
-      const allSame = gestureBufferRef.current.every(g => g === gesture);
+    // Check if gesture is stable (appears in at least 3 out of 5 frames)
+    if (gestureBufferRef.current.length >= 5) {
+      const gestureCount = gestureBufferRef.current.filter(g => g === gesture).length;
       
-      if (allSame && gesture !== lastGestureRef.current) {
+      if (gestureCount >= 3 && gesture !== lastGestureRef.current) {
         // Clear any pending debounce
         if (debounceTimerRef.current) {
           clearTimeout(debounceTimerRef.current);
         }
         
-        // Debounce gesture update
+        // Debounce gesture update (80ms in fast mode, 300ms in normal mode)
+        const debounceDelay = fastMode ? 80 : 300;
         debounceTimerRef.current = setTimeout(async () => {
           setDetectedGesture(gesture);
           setGestureConfirmed(true);
@@ -811,30 +813,33 @@ Return ONLY the 3 alternative sentences, one per line, no numbering, no labels, 
     };
   }, [currentMode]);
 
-  // Process webcam frames
+  // Process webcam frames with optimized requestAnimationFrame
   useEffect(() => {
     if (currentMode !== 'gesture' || !cameraActive) return;
 
-    const detectHands = async () => {
-      if (
-        webcamRef.current &&
-        webcamRef.current.video &&
-        webcamRef.current.video.readyState === 4 &&
-        handsRef.current
-      ) {
-        const video = webcamRef.current.video;
-        await handsRef.current.send({ image: video });
+    let lastFrameTime = 0;
+    
+    const detectHands = async (currentTime: number) => {
+      // Process frames every 100ms for fast, smooth detection
+      if (currentTime - lastFrameTime >= 100) {
+        if (
+          webcamRef.current &&
+          webcamRef.current.video &&
+          webcamRef.current.video.readyState === 4 &&
+          handsRef.current
+        ) {
+          const video = webcamRef.current.video;
+          await handsRef.current.send({ image: video });
+          lastFrameTime = currentTime;
+        }
       }
       
-      // Process every 200ms to reduce CPU usage
-      setTimeout(() => {
-        if (cameraActive && currentMode === 'gesture') {
-          animationFrameRef.current = requestAnimationFrame(detectHands);
-        }
-      }, 200);
+      if (cameraActive && currentMode === 'gesture') {
+        animationFrameRef.current = requestAnimationFrame(detectHands);
+      }
     };
 
-    detectHands();
+    animationFrameRef.current = requestAnimationFrame(detectHands);
 
     return () => {
       if (animationFrameRef.current) {
@@ -845,11 +850,11 @@ Return ONLY the 3 alternative sentences, one per line, no numbering, no labels, 
 
   // Draw hand landmarks on canvas
   const onHandsResults = (results: Results) => {
-    // Chapter 8 - Throttle processing to 5 FPS for performance
+    // Optimized processing for faster response (10 FPS)
     const now = Date.now();
     const timeSinceLastProcess = now - lastProcessTimeRef.current;
     
-    if (timeSinceLastProcess < 200) { // 200ms = 5 FPS
+    if (timeSinceLastProcess < 100) { // 100ms = 10 FPS for faster detection
       return;
     }
     
@@ -991,6 +996,131 @@ Return ONLY the 3 alternative sentences, one per line, no numbering, no labels, 
             </span>
           </label>
         </div>
+
+        {/* Fast Mode Toggle */}
+        {currentMode === 'gesture' && (
+          <div className="ai-mode-toggle-container">
+            <label className="ai-toggle-label">
+              <span className="toggle-text">Normal Speed</span>
+              <button
+                className={`ai-toggle-switch ${fastMode ? 'active' : ''}`}
+                onClick={() => setFastMode(!fastMode)}
+                role="switch"
+                aria-checked={fastMode}
+                aria-label="Toggle fast gesture mode"
+              >
+                <span className="toggle-slider"></span>
+              </button>
+              <span className="toggle-text ai-text">
+                ⚡ Fast Mode
+              </span>
+            </label>
+          </div>
+        )}
+
+        {/* Webcam Section - MOVED TO TOP */}
+        {currentMode === 'gesture' && (
+          <section 
+            className="gesture-top-section"
+            role="region"
+            aria-label="Gesture camera"
+          >
+            <div className="gesture-layout">
+              {/* LEFT - Webcam Feed */}
+              <div className="webcam-container-left">
+                {cameraActive ? (
+                  <div className="webcam-wrapper">
+                    <Webcam
+                      ref={webcamRef}
+                      audio={false}
+                      screenshotFormat="image/jpeg"
+                      videoConstraints={{
+                        width: 640,
+                        height: 480,
+                        facingMode: 'user',
+                      }}
+                      className="webcam-video"
+                    />
+                    <canvas
+                      ref={canvasRef}
+                      width={640}
+                      height={480}
+                      className="webcam-canvas"
+                    />
+                    {/* Fast Mode Indicator Overlay */}
+                    {fastMode && (
+                      <div className="fast-mode-indicator" aria-live="polite">
+                        <span className="fast-icon">⚡</span>
+                        <span className="fast-text">FAST MODE</span>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="webcam-placeholder">
+                    <VideoOff size={64} className="text-gray-400" />
+                    <p className="text-gray-500 mt-4 text-xl font-semibold">Camera Paused</p>
+                  </div>
+                )}
+
+                <div className="webcam-controls">
+                  <button
+                    className="control-btn camera-btn focus-ring"
+                    onClick={toggleCamera}
+                    aria-label={cameraActive ? 'Pause camera' : 'Resume camera'}
+                  >
+                    {cameraActive ? (
+                      <>
+                        <VideoOff size={24} />
+                        <span>Pause Camera</span>
+                      </>
+                    ) : (
+                      <>
+                        <Video size={24} />
+                        <span>Resume Camera</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+
+              {/* RIGHT - Live Gesture Display Panel */}
+              <div className="gesture-display-panel glass-card soft-shadow">
+                <h3 className="gesture-panel-title">DETECTED GESTURE</h3>
+                
+                {detectedGesture ? (
+                  <div className={`gesture-text pop-effect ${
+                    detectedGesture === 'YES' ? 'gesture-yes' : 
+                    detectedGesture === 'NO' ? 'gesture-no' : 
+                    detectedGesture === 'HELP' ? 'gesture-help' : 
+                    'gesture-default'
+                  }`}>
+                    {detectedGesture}
+                  </div>
+                ) : (
+                  <div className="gesture-waiting">
+                    <span className="waiting-icon">👋</span>
+                    <p className="waiting-text">Show a hand gesture...</p>
+                  </div>
+                )}
+
+                <div className="gesture-status">
+                  <div className="status-row">
+                    <span className="status-dot" style={{background: detectedGesture ? '#10b981' : '#9ca3af'}}></span>
+                    <span className="status-text">{detectedGesture ? 'Active' : 'Waiting'}</span>
+                  </div>
+                  <div className="status-row">
+                    <span className="status-dot" style={{background: voiceEnabled ? '#10b981' : '#9ca3af'}}></span>
+                    <span className="status-text">Voice: {voiceEnabled ? 'ON' : 'OFF'}</span>
+                  </div>
+                  <div className="status-row">
+                    <span className="status-dot" style={{background: fastMode ? '#f59e0b' : '#9ca3af'}}></span>
+                    <span className="status-text">Speed: {fastMode ? '⚡ FAST' : 'Normal'}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+        )}
 
         {/* Output Display Panel */}
         <div 
@@ -1520,136 +1650,7 @@ Return ONLY the 3 alternative sentences, one per line, no numbering, no labels, 
           )}
         </section>
 
-        {/* FIXED - Webcam Section with Side-by-Side Layout */}
-        {currentMode === 'gesture' && (
-          <section 
-            className="webcam-section"
-            role="region"
-            aria-label="Gesture camera"
-          >
-            <h2 className="text-2xl font-bold text-gray-800 text-center mb-6">
-              Gesture Recognition Camera
-            </h2>
-            
-            {/* Side-by-Side Layout: Webcam LEFT, Gesture Display RIGHT */}
-            <div className="gesture-layout">
-              {/* LEFT - Webcam Feed */}
-              <div className="webcam-container-left">
-                {cameraActive ? (
-                  <div className="webcam-wrapper">
-                    <Webcam
-                      ref={webcamRef}
-                      audio={false}
-                      screenshotFormat="image/jpeg"
-                      videoConstraints={{
-                        width: 640,
-                        height: 480,
-                        facingMode: 'user',
-                      }}
-                      className="webcam-video"
-                    />
-                    <canvas
-                      ref={canvasRef}
-                      width={640}
-                      height={480}
-                      className="webcam-canvas"
-                    />
-                  </div>
-                ) : (
-                  <div className="webcam-placeholder">
-                    <VideoOff size={64} className="text-gray-400" />
-                    <p className="text-gray-500 mt-4 text-xl font-semibold">Camera Paused</p>
-                  </div>
-                )}
-
-                {/* Camera Control Button */}
-                <div className="webcam-controls">
-                  <button
-                    className="control-btn camera-btn focus-ring"
-                    onClick={toggleCamera}
-                    aria-label={cameraActive ? 'Pause camera' : 'Resume camera'}
-                  >
-                    {cameraActive ? (
-                      <>
-                        <VideoOff size={24} />
-                        <span>Pause Camera</span>
-                      </>
-                    ) : (
-                      <>
-                        <Video size={24} />
-                        <span>Resume Camera</span>
-                      </>
-                    )}
-                  </button>
-                </div>
-              </div>
-
-              {/* RIGHT - Live Gesture Display Panel */}
-              <div className="gesture-display-panel glass-card soft-shadow">
-                <h3 className="gesture-panel-title">DETECTED GESTURE</h3>
-                
-                {detectedGesture ? (
-                  <div className={`gesture-text pop-effect ${
-                    detectedGesture === 'YES' ? 'gesture-yes' : 
-                    detectedGesture === 'NO' ? 'gesture-no' : 
-                    detectedGesture === 'HELP' ? 'gesture-help' : 
-                    'gesture-default'
-                  }`}>
-                    {detectedGesture}
-                  </div>
-                ) : (
-                  <div className="gesture-waiting">
-                    <span className="waiting-icon">👋</span>
-                    <p className="waiting-text">Show a hand gesture...</p>
-                  </div>
-                )}
-
-                {/* Status Indicators */}
-                <div className="gesture-status">
-                  <div className="status-row">
-                    <span className="status-dot" style={{background: detectedGesture ? '#10b981' : '#9ca3af'}}></span>
-                    <span className="status-text">{detectedGesture ? 'Active' : 'Waiting'}</span>
-                  </div>
-                  <div className="status-row">
-                    <span className="status-dot" style={{background: voiceEnabled ? '#10b981' : '#9ca3af'}}></span>
-                    <span className="status-text">Voice: {voiceEnabled ? 'ON' : 'OFF'}</span>
-                  </div>
-                </div>
-
-                {/* Debug Panel */}
-                <div className="debug-panel">
-                  <div className="debug-row">
-                    <span className="debug-label">Last Output:</span>
-                    <span className="debug-value">{outputText.slice(0, 30)}...</span>
-                  </div>
-                  <div className="debug-row">
-                    <span className="debug-label">Voice Enabled:</span>
-                    <span className="debug-value">{voiceEnabled ? '✅ TRUE' : '❌ FALSE'}</span>
-                  </div>
-                  <div className="debug-row">
-                    <span className="debug-label">AI Mode:</span>
-                    <span className="debug-value">{aiMode ? '✅ TRUE' : '❌ FALSE'}</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Gesture History Below */}
-            {history.length > 0 && (
-              <div className="gesture-history">
-                <h3 className="text-lg font-semibold text-gray-700 mb-3 text-center">📜 Recent Gestures</h3>
-                <div className="history-items">
-                  {history.slice(0, 5).map((item, index) => (
-                    <span key={index} className="history-item">
-                      {item}
-                      {index < Math.min(history.length, 5) - 1 && <span className="history-arrow">→</span>}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
-          </section>
-        )}
+        {/* Webcam section moved to top of page - see gesture-top-section above */}
 
         {/* Placeholder for Future Sections */}
         <div className="future-section">
