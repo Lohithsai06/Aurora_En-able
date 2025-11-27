@@ -316,11 +316,11 @@
 
 .user-name-gradient {
   background: linear-gradient(135deg, 
-    #fef3c7 0%, 
-    #fbbf24 25%,
-    #f59e0b 50%,
-    #fbbf24 75%,
-    #fef3c7 100%);
+    #f3e8ff 0%,
+    #f093fb 25%,
+    #7c3aed 50%,
+    #8b5cf6 75%,
+    #f3e8ff 100%);
   background-size: 200% 100%;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -329,8 +329,8 @@
   position: relative;
   font-weight: 900;
   animation: gradientShift 4s ease-in-out infinite;
-  filter: drop-shadow(0 4px 12px rgba(251, 191, 36, 0.6))
-          drop-shadow(0 2px 6px rgba(245, 158, 11, 0.4));
+  filter: drop-shadow(0 4px 12px rgba(124, 58, 237, 0.6))
+          drop-shadow(0 2px 6px rgba(139, 92, 246, 0.4));
 }
 
 @keyframes gradientShift {
@@ -343,9 +343,9 @@
 }
 
 .sparkle-icon {
-  color: #fbbf24;
+  color: #f093fb;
   animation: sparkleRotate 3s ease-in-out infinite;
-  filter: drop-shadow(0 2px 8px rgba(251, 191, 36, 0.6));
+  filter: drop-shadow(0 2px 8px rgba(124, 58, 237, 0.6));
 }
 
 @keyframes sparkleRotate {
