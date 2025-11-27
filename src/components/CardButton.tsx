@@ -17,18 +17,18 @@ export default function CardButton({ title, description, icon, onClick }: CardBu
 
   return (
     <div
-      className="card-button bg-white rounded-xl shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2 cursor-pointer p-6 border-2 border-transparent hover:border-blue-500"
+      className="card-button"
       onClick={onClick}
       onKeyPress={handleKeyPress}
       role="button"
       tabIndex={0}
       aria-label={`${title}: ${description}`}
     >
-      <div className="card-icon mb-4 flex justify-center text-blue-600">
+      <div className="card-icon">
         {icon}
       </div>
-      <h3 className="card-title mb-2 text-center">{title}</h3>
-      <p className="card-description text-center text-gray-600">{description}</p>
+      <h3 className="card-title" style={{ color: '#111' }}>{title}</h3>
+      <p className="card-description">{description}</p>
     </div>
   );
 }

@@ -37,6 +37,8 @@
   grid-template-columns: repeat(1, 1fr);
   gap: 2rem;
   animation-delay: 0.2s;
+  max-width: 1200px;
+  margin: 0 auto;
 }
 
 @media (min-width: 768px) {
@@ -47,7 +49,7 @@
 
 @media (min-width: 1024px) {
   .dashboard-grid {
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(4, 1fr);
   }
 }
 
@@ -56,21 +58,46 @@
   display: flex;
   flex-direction: column;
   justify-content: center;
+  align-items: center;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  padding: 2rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border: 2px solid transparent;
+}
+
+.card-button:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+  border-color: #3b82f6;
 }
 
 .card-icon {
-  animation: scaleIn 0.4s ease-out;
+  font-size: 3rem;
+  margin-bottom: 1rem;
+  color: #3b82f6;
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 
 .card-title {
-  font-size: 1.5rem;
+  font-size: 1.25rem;
   font-weight: 600;
-  color: var(--text);
+  color: #111 !important;
+  margin-bottom: 0.5rem;
+  text-align: center;
+  line-height: 1.4;
 }
 
 .card-description {
-  font-size: 1rem;
+  font-size: 0.9rem;
   line-height: 1.5;
+  color: #666 !important;
+  text-align: center;
+  margin: 0;
 }
 
 @media (max-width: 768px) {

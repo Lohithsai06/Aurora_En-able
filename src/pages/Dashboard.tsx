@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import CardButton from '../components/CardButton';
-import { Ear, MessageSquare, Brain } from 'lucide-react';
+import { Ear, MessageSquare, Brain, Eye } from 'lucide-react';
 import '../styles/dashboard.css';
 
 export default function Dashboard() {
@@ -31,6 +31,13 @@ export default function Dashboard() {
         </div>
 
         <div className="dashboard-grid slide-up">
+          <CardButton
+            title="Blind / Visual Impairment"
+            description="Screen readers, voice navigation, and audio feedback"
+            icon={<Eye size={48} />}
+            onClick={() => navigate('/blind')}
+          />
+
           <CardButton
             title="Deaf / Hard of Hearing"
             description="Visual indicators, captions, and sign language support"
