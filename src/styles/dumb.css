@@ -361,18 +361,30 @@
 }
 
 /* Webcam Section */
+/* FIXED - Webcam Section with Side-by-Side Layout */
 .webcam-section {
   margin-top: 2rem;
   padding: 2rem;
-  background: white;
+  background: linear-gradient(135deg, #f8fafc 0%, #ffffff 100%);
   border-radius: 1.25rem;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
 }
 
-.webcam-container {
+/* Side-by-Side Gesture Layout */
+.gesture-layout {
   display: flex;
+  flex-direction: row;
+  gap: 24px;
+  align-items: flex-start;
   justify-content: center;
-  margin-bottom: 1.5rem;
+  margin: 2rem 0;
+}
+
+/* Left - Webcam Container */
+.webcam-container-left {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
 }
 
 .webcam-wrapper {
@@ -382,7 +394,7 @@
   max-width: 100%;
   border-radius: 1rem;
   overflow: hidden;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
   border: 3px solid #e5e7eb;
 }
 
@@ -418,6 +430,7 @@
   display: flex;
   justify-content: center;
   gap: 1rem;
+  margin-top: 1rem;
 }
 
 .camera-btn {
@@ -428,6 +441,150 @@
 .camera-btn:hover {
   transform: translateY(-2px);
   box-shadow: 0 6px 16px rgba(139, 92, 246, 0.4);
+}
+
+/* Right - Gesture Display Panel */
+.gesture-display-panel {
+  padding: 30px;
+  border-radius: 20px;
+  background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+  text-align: center;
+  min-width: 350px;
+  max-width: 400px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.gesture-panel-title {
+  font-size: 0.875rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: #64748b;
+  text-transform: uppercase;
+  margin-bottom: 0.5rem;
+}
+
+.gesture-text {
+  font-size: 3.5rem;
+  font-weight: 800;
+  line-height: 1.2;
+  padding: 2rem;
+  border-radius: 16px;
+  animation: popIn 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.gesture-yes {
+  background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
+  color: #065f46;
+  border: 3px solid #10b981;
+}
+
+.gesture-no {
+  background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
+  color: #991b1b;
+  border: 3px solid #ef4444;
+}
+
+.gesture-help {
+  background: linear-gradient(135deg, #fed7aa 0%, #fdba74 100%);
+  color: #9a3412;
+  border: 3px solid #f97316;
+}
+
+.gesture-default {
+  background: linear-gradient(135deg, #e0e7ff 0%, #c7d2fe 100%);
+  color: #3730a3;
+  border: 3px solid #6366f1;
+}
+
+.gesture-waiting {
+  padding: 2rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+}
+
+.waiting-icon {
+  font-size: 4rem;
+  animation: wave 1.5s ease-in-out infinite;
+}
+
+@keyframes wave {
+  0%, 100% { transform: rotate(0deg); }
+  25% { transform: rotate(20deg); }
+  75% { transform: rotate(-20deg); }
+}
+
+.waiting-text {
+  font-size: 1.125rem;
+  color: #64748b;
+  font-weight: 500;
+}
+
+/* Gesture Status Indicators */
+.gesture-status {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 1rem;
+  background: rgba(255, 255, 255, 0.6);
+  border-radius: 12px;
+}
+
+.status-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.975rem;
+  font-weight: 600;
+  color: #475569;
+}
+
+.status-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  animation: pulse-glow 2s infinite;
+}
+
+.status-text {
+  flex: 1;
+  text-align: left;
+}
+
+/* Debug Panel */
+.debug-panel {
+  background: rgba(0, 0, 0, 0.05);
+  border-radius: 12px;
+  padding: 1rem;
+  font-size: 0.75rem;
+  text-align: left;
+}
+
+.debug-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.375rem 0;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.debug-row:last-child {
+  border-bottom: none;
+}
+
+.debug-label {
+  font-weight: 600;
+  color: #64748b;
+}
+
+.debug-value {
+  font-weight: 700;
+  color: #1e293b;
+  font-family: monospace;
 }
 
 /* Speaking Animation */
@@ -824,6 +981,18 @@
 .stop-btn:hover:not(:disabled) {
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+}
+
+.test-btn {
+  background: #fbbf24;
+  color: #78350f;
+  font-weight: 700;
+}
+
+.test-btn:hover {
+  background: #f59e0b;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(251, 191, 36, 0.4);
 }
 
 .control-btn-small:disabled {
@@ -1479,6 +1648,25 @@
 
   .control-btn {
     width: 100%;
+  }
+
+  .gesture-layout {
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .webcam-container-left {
+    width: 100%;
+  }
+
+  .gesture-display-panel {
+    min-width: 100%;
+    max-width: 100%;
+    padding: 1.5rem;
+  }
+
+  .gesture-text {
+    font-size: 2.5rem;
   }
 
   .webcam-wrapper,

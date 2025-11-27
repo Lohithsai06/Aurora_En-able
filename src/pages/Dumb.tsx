@@ -133,20 +133,10 @@ export default function Dumb() {
     };
   }, []);
 
-  // Auto-speak on output change
-  useEffect(() => {
-    if (outputText && 
-        outputText !== 'Your message will appear here' && 
-        voiceEnabled && 
-        !aiLoading &&
-        detectedGesture) {
-      speakText(outputText);
-    }
-  }, [outputText, voiceEnabled, aiLoading]);
-
-  // Speech synthesis function
+  // FIXED - Robust Speech synthesis function
   const speakText = (text: string) => {
     if (!text || text === 'Your message will appear here') return;
+    if (!voiceEnabled) return;
 
     try {
       // Cancel any ongoing speech
@@ -164,10 +154,12 @@ export default function Dumb() {
 
       utterance.onstart = () => {
         setIsSpeaking(true);
+        console.log('Speech started:', text);
       };
 
       utterance.onend = () => {
         setIsSpeaking(false);
+        console.log('Speech finished');
       };
 
       utterance.onerror = (event) => {
@@ -182,6 +174,21 @@ export default function Dumb() {
       setIsSpeaking(false);
     }
   };
+
+  // FIXED - Auto-speak on output change (removed blocking conditions)
+  useEffect(() => {
+    if (outputText && 
+        outputText !== 'Your message will appear here' && 
+        voiceEnabled && 
+        !aiLoading) {
+      // Small delay to ensure state is updated
+      const timer = setTimeout(() => {
+        speakText(outputText);
+      }, 100);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [outputText, voiceEnabled, aiLoading, speechRate, speechPitch, selectedVoice]);
 
   const handleSpeak = () => {
     if (!outputText || outputText === 'Your message will appear here') return;
@@ -1427,6 +1434,13 @@ Return ONLY the 3 alternative sentences, one per line, no numbering, no labels, 
                 >
                   <span>⏹️ Stop</span>
                 </button>
+                <button
+                  className="control-btn-small test-btn focus-ring"
+                  onClick={() => speakText('Voice system active and working correctly')}
+                  aria-label="Test voice"
+                >
+                  <span>🎤 Test</span>
+                </button>
               </div>
             </div>
 
@@ -1506,79 +1520,129 @@ Return ONLY the 3 alternative sentences, one per line, no numbering, no labels, 
           )}
         </section>
 
-        {/* Webcam Section - Only visible in Gesture Mode */}
+        {/* FIXED - Webcam Section with Side-by-Side Layout */}
         {currentMode === 'gesture' && (
           <section 
             className="webcam-section"
             role="region"
             aria-label="Gesture camera"
           >
-            <h2 className="text-2xl font-bold text-gray-800 text-center mb-4">
-              Gesture Camera
+            <h2 className="text-2xl font-bold text-gray-800 text-center mb-6">
+              Gesture Recognition Camera
             </h2>
             
-            <p className="text-center text-gray-600 mb-4">
-              Show your hand gestures in front of the camera
-            </p>
-
-            <div className="webcam-container">
-              {cameraActive ? (
-                <div className="webcam-wrapper">
-                  <Webcam
-                    ref={webcamRef}
-                    audio={false}
-                    screenshotFormat="image/jpeg"
-                    videoConstraints={{
-                      width: 640,
-                      height: 480,
-                      facingMode: 'user',
-                    }}
-                    className="webcam-video"
-                  />
-                  <canvas
-                    ref={canvasRef}
-                    width={640}
-                    height={480}
-                    className="webcam-canvas"
-                  />
-                </div>
-              ) : (
-                <div className="webcam-placeholder">
-                  <VideoOff size={64} className="text-gray-400" />
-                  <p className="text-gray-500 mt-4">Camera paused</p>
-                </div>
-              )}
-            </div>
-
-            <div className="webcam-controls">
-              <button
-                className="control-btn camera-btn focus-ring"
-                onClick={toggleCamera}
-                aria-label={cameraActive ? 'Pause camera' : 'Resume camera'}
-              >
+            {/* Side-by-Side Layout: Webcam LEFT, Gesture Display RIGHT */}
+            <div className="gesture-layout">
+              {/* LEFT - Webcam Feed */}
+              <div className="webcam-container-left">
                 {cameraActive ? (
-                  <>
-                    <VideoOff size={24} />
-                    <span>Pause Camera</span>
-                  </>
+                  <div className="webcam-wrapper">
+                    <Webcam
+                      ref={webcamRef}
+                      audio={false}
+                      screenshotFormat="image/jpeg"
+                      videoConstraints={{
+                        width: 640,
+                        height: 480,
+                        facingMode: 'user',
+                      }}
+                      className="webcam-video"
+                    />
+                    <canvas
+                      ref={canvasRef}
+                      width={640}
+                      height={480}
+                      className="webcam-canvas"
+                    />
+                  </div>
                 ) : (
-                  <>
-                    <Video size={24} />
-                    <span>Resume Camera</span>
-                  </>
+                  <div className="webcam-placeholder">
+                    <VideoOff size={64} className="text-gray-400" />
+                    <p className="text-gray-500 mt-4 text-xl font-semibold">Camera Paused</p>
+                  </div>
                 )}
-              </button>
+
+                {/* Camera Control Button */}
+                <div className="webcam-controls">
+                  <button
+                    className="control-btn camera-btn focus-ring"
+                    onClick={toggleCamera}
+                    aria-label={cameraActive ? 'Pause camera' : 'Resume camera'}
+                  >
+                    {cameraActive ? (
+                      <>
+                        <VideoOff size={24} />
+                        <span>Pause Camera</span>
+                      </>
+                    ) : (
+                      <>
+                        <Video size={24} />
+                        <span>Resume Camera</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+
+              {/* RIGHT - Live Gesture Display Panel */}
+              <div className="gesture-display-panel glass-card soft-shadow">
+                <h3 className="gesture-panel-title">DETECTED GESTURE</h3>
+                
+                {detectedGesture ? (
+                  <div className={`gesture-text pop-effect ${
+                    detectedGesture === 'YES' ? 'gesture-yes' : 
+                    detectedGesture === 'NO' ? 'gesture-no' : 
+                    detectedGesture === 'HELP' ? 'gesture-help' : 
+                    'gesture-default'
+                  }`}>
+                    {detectedGesture}
+                  </div>
+                ) : (
+                  <div className="gesture-waiting">
+                    <span className="waiting-icon">👋</span>
+                    <p className="waiting-text">Show a hand gesture...</p>
+                  </div>
+                )}
+
+                {/* Status Indicators */}
+                <div className="gesture-status">
+                  <div className="status-row">
+                    <span className="status-dot" style={{background: detectedGesture ? '#10b981' : '#9ca3af'}}></span>
+                    <span className="status-text">{detectedGesture ? 'Active' : 'Waiting'}</span>
+                  </div>
+                  <div className="status-row">
+                    <span className="status-dot" style={{background: voiceEnabled ? '#10b981' : '#9ca3af'}}></span>
+                    <span className="status-text">Voice: {voiceEnabled ? 'ON' : 'OFF'}</span>
+                  </div>
+                </div>
+
+                {/* Debug Panel */}
+                <div className="debug-panel">
+                  <div className="debug-row">
+                    <span className="debug-label">Last Output:</span>
+                    <span className="debug-value">{outputText.slice(0, 30)}...</span>
+                  </div>
+                  <div className="debug-row">
+                    <span className="debug-label">Voice Enabled:</span>
+                    <span className="debug-value">{voiceEnabled ? '✅ TRUE' : '❌ FALSE'}</span>
+                  </div>
+                  <div className="debug-row">
+                    <span className="debug-label">AI Mode:</span>
+                    <span className="debug-value">{aiMode ? '✅ TRUE' : '❌ FALSE'}</span>
+                  </div>
+                </div>
+              </div>
             </div>
 
-            {/* Gesture History */}
+            {/* Gesture History Below */}
             {history.length > 0 && (
               <div className="gesture-history">
-                <h3 className="text-lg font-semibold text-gray-700 mb-2">Recent Gestures:</h3>
+                <h3 className="text-lg font-semibold text-gray-700 mb-3 text-center">📜 Recent Gestures</h3>
                 <div className="history-items">
-                  {history.map((item, index) => (
+                  {history.slice(0, 5).map((item, index) => (
                     <span key={index} className="history-item">
                       {item}
-                      {index < history.length - 1 && <span className="history-arrow">→</span>}
+                      {index < Math.min(history.length, 5) - 1 && <span className="history-arrow">→</span>}
                     </span>
                   ))}
                 </div>
