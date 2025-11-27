@@ -42,6 +42,15 @@ export default function Dumb() {
   const [activePhrase, setActivePhrase] = useState<string | null>(null);
   const [sentenceBuilder, setSentenceBuilder] = useState<string[]>([]);
   
+  // Chapter 7 - New State Variables
+  const [smartSuggestions, setSmartSuggestions] = useState<string[]>([]);
+  const [suggestionsLoading, setSuggestionsLoading] = useState<boolean>(false);
+  const [emergencyMode, setEmergencyMode] = useState<boolean>(false);
+  const [caregiverMode, setCaregiverMode] = useState<boolean>(false);
+  const [urgencyDetected, setUrgencyDetected] = useState<boolean>(false);
+  const [showUrgencyPrompt, setShowUrgencyPrompt] = useState<boolean>(false);
+  const [gestureRepeatCount, setGestureRepeatCount] = useState<{ [key: string]: number }>({});
+  
   const webcamRef = useRef<Webcam>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const handsRef = useRef<Hands | null>(null);
@@ -50,6 +59,8 @@ export default function Dumb() {
   const lastGestureRef = useRef<string>('');
   const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
   const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
+  const emergencyIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const urgencyTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   // Initialize available voices
   useEffect(() => {
@@ -152,6 +163,8 @@ export default function Dumb() {
     setAiSuggestions([]);
     setActivePhrase(null);
     setSentenceBuilder([]);
+    setSmartSuggestions([]);
+    deactivateEmergency();
   };
 
   // Handle Quick Phrase Click
@@ -361,6 +374,173 @@ Format: Return only the 3 sentences separated by newlines, no numbering or label
     await getAiSuggestions(detectedGesture);
   };
 
+  // Chapter 7 - Smart Suggestions Function
+  const getSmartSuggestions = async (inputText: string): Promise<void> => {
+    if (!GEMINI_API_KEY || inputText === 'Your message will appear here') return;
+
+    setSuggestionsLoading(true);
+    try {
+      const prompt = `Provide 3 alternative ways to express this message in different tones:
+1. Polite/Friendly tone
+2. Urgent tone  
+3. Neutral/Professional tone
+
+Original message: "${inputText}"
+
+Return ONLY the 3 alternative sentences, one per line, no numbering, no labels, no extra text.`;
+
+      const response = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${GEMINI_API_KEY}`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            contents: [{
+              parts: [{ text: prompt }]
+            }]
+          })
+        }
+      );
+
+      if (response.ok) {
+        const data = await response.json();
+        const aiText = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+        const suggestions = aiText
+          .split('\n')
+          .map(s => s.trim())
+          .filter(s => s.length > 0 && !s.match(/^\d+[\.)]/))
+          .slice(0, 3);
+        
+        setSmartSuggestions(suggestions.length === 3 ? suggestions : []);
+      }
+    } catch (error) {
+      console.error('Smart suggestions error:', error);
+      setSmartSuggestions([]);
+    } finally {
+      setSuggestionsLoading(false);
+    }
+  };
+
+  // Chapter 7 - Handle Suggestion Click
+  const handleSuggestionClick = async (suggestion: string) => {
+    setOutputText(suggestion);
+    
+    // Add to history
+    setHistory(prev => {
+      const newHistory = [`💡 ${suggestion}`, ...prev];
+      return newHistory.slice(0, 10);
+    });
+
+    // Speak immediately
+    if (voiceEnabled) {
+      speakText(suggestion);
+    }
+  };
+
+  // Chapter 7 - Emergency Mode Functions
+  const activateEmergency = () => {
+    setEmergencyMode(true);
+    setOutputText("I NEED IMMEDIATE HELP");
+    setShowUrgencyPrompt(false);
+    
+    // Add to history
+    setHistory(prev => {
+      const newHistory = ['🚨 EMERGENCY: I NEED IMMEDIATE HELP', ...prev];
+      return newHistory.slice(0, 10);
+    });
+
+    // Play repeating emergency message
+    if (emergencyIntervalRef.current) {
+      clearInterval(emergencyIntervalRef.current);
+    }
+
+    const playEmergencyMessage = () => {
+      window.speechSynthesis.cancel();
+      const utterance = new SpeechSynthesisUtterance("EMERGENCY! I NEED IMMEDIATE HELP!");
+      utterance.lang = "en-US";
+      utterance.rate = 0.8;
+      utterance.pitch = 1.2;
+      utterance.volume = 1.0;
+      window.speechSynthesis.speak(utterance);
+    };
+
+    // Play immediately
+    playEmergencyMessage();
+    
+    // Repeat every 3 seconds
+    emergencyIntervalRef.current = setInterval(playEmergencyMessage, 3000);
+
+    // Auto-deactivate after 15 seconds
+    setTimeout(() => {
+      deactivateEmergency();
+    }, 15000);
+  };
+
+  const deactivateEmergency = () => {
+    setEmergencyMode(false);
+    if (emergencyIntervalRef.current) {
+      clearInterval(emergencyIntervalRef.current);
+      emergencyIntervalRef.current = null;
+    }
+    window.speechSynthesis.cancel();
+    setIsSpeaking(false);
+  };
+
+  // Chapter 7 - Urgency Detection
+  const checkUrgency = (gesture: string) => {
+    const currentCount = gestureRepeatCount[gesture] || 0;
+    const newCount = currentCount + 1;
+
+    setGestureRepeatCount(prev => ({
+      ...prev,
+      [gesture]: newCount
+    }));
+
+    // If HELP gesture repeated 3 times quickly
+    if (gesture === 'HELP' && newCount >= 3) {
+      setUrgencyDetected(true);
+      setShowUrgencyPrompt(true);
+
+      // Reset prompt after 10 seconds
+      setTimeout(() => {
+        setShowUrgencyPrompt(false);
+        setUrgencyDetected(false);
+      }, 10000);
+    }
+
+    // Reset count after 5 seconds of no activity
+    if (urgencyTimerRef.current) {
+      clearTimeout(urgencyTimerRef.current);
+    }
+
+    urgencyTimerRef.current = setTimeout(() => {
+      setGestureRepeatCount({});
+    }, 5000);
+  };
+
+  // Chapter 7 - History Replay
+  const replayHistoryItem = (item: string) => {
+    // Remove emoji prefix if exists
+    const cleanText = item.replace(/^[🚨💡]\s*/, '');
+    setOutputText(cleanText);
+    
+    if (voiceEnabled) {
+      speakText(cleanText);
+    }
+  };
+
+  // Chapter 7 - Clear History
+  const clearHistory = () => {
+    setHistory([]);
+  };
+
+  // Chapter 7 - Toggle Caregiver Mode
+  const toggleCaregiverMode = () => {
+    setCaregiverMode(!caregiverMode);
+  };
+
   // Helper: Calculate distance between two landmarks
   const getDistance = (point1: NormalizedLandmark, point2: NormalizedLandmark): number => {
     const dx = point1.x - point2.x;
@@ -499,6 +679,9 @@ Format: Return only the 3 sentences separated by newlines, no numbering or label
             return newContext;
           });
           
+          // Chapter 7 - Check for urgency
+          checkUrgency(gesture);
+
           // AI Mode Processing
           if (aiMode) {
             setAiLoading(true);
@@ -508,16 +691,22 @@ Format: Return only the 3 sentences separated by newlines, no numbering or label
             
             // Get suggestions
             await getAiSuggestions(gesture);
+            
+            // Chapter 7 - Get smart suggestions
+            await getSmartSuggestions(aiResponse);
           } else {
             // Basic Mode - show raw gesture
             setOutputText(gesture);
             setAiSuggestions([]);
+            
+            // Chapter 7 - Get smart suggestions for raw gesture
+            await getSmartSuggestions(gesture);
           }
           
-          // Add to history (limit to 5)
+          // Add to history (limit to 10)
           setHistory(prev => {
             const newHistory = [gesture, ...prev];
-            return newHistory.slice(0, 5);
+            return newHistory.slice(0, 10);
           });
           
           // Reset confirmation animation after 500ms
@@ -640,7 +829,7 @@ Format: Return only the 3 sentences separated by newlines, no numbering or label
 
   return (
     <div 
-      className="dumb-page" 
+      className={`dumb-page ${emergencyMode ? 'emergency-active' : ''} ${caregiverMode ? 'caregiver-mode' : ''}`}
       role="main" 
       aria-label="Dumb communication page"
       tabIndex={0}
@@ -797,6 +986,156 @@ Format: Return only the 3 sentences separated by newlines, no numbering or label
                     {index === 0 ? '😊 Friendly' : index === 1 ? '⚡ Urgent' : '📝 Neutral'}
                   </span>
                   <p className="suggestion-text">{suggestion}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Chapter 7 - Smart Suggestions Panel */}
+        {smartSuggestions.length > 0 && !suggestionsLoading && (
+          <div className="smart-suggestions-panel">
+            <h3 className="suggestions-title">💡 Smart Suggestions</h3>
+            <div className="smart-suggestions-list">
+              {smartSuggestions.map((suggestion, index) => (
+                <button 
+                  key={index} 
+                  className="smart-suggestion-pill focus-ring"
+                  onClick={() => handleSuggestionClick(suggestion)}
+                  aria-label={`Suggestion ${index + 1}: ${suggestion}`}
+                >
+                  <span className="pill-icon">
+                    {index === 0 ? '😊' : index === 1 ? '🚨' : '💼'}
+                  </span>
+                  <span className="pill-text">{suggestion}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Chapter 7 - Status Indicators */}
+        <div className="status-indicators">
+          {emergencyMode && (
+            <div className="status-badge emergency-badge" aria-live="assertive">
+              🔴 EMERGENCY ACTIVE
+            </div>
+          )}
+          {aiMode && (
+            <div className="status-badge ai-badge">
+              🤖 AI Mode Active
+            </div>
+          )}
+          {isSpeaking && (
+            <div className="status-badge voice-badge">
+              🔈 Voice Playing
+            </div>
+          )}
+          {history.length > 0 && (
+            <div className="status-badge history-badge">
+              📜 History: {history.length}/10
+            </div>
+          )}
+        </div>
+
+        {/* Chapter 7 - Urgency Detection Prompt */}
+        {showUrgencyPrompt && !emergencyMode && (
+          <div className="urgency-prompt-overlay" aria-live="assertive">
+            <div className="urgency-prompt-card">
+              <h3 className="urgency-title">⚠️ Urgency Detected</h3>
+              <p className="urgency-message">Multiple HELP gestures detected. Do you need emergency assistance?</p>
+              <div className="urgency-actions">
+                <button 
+                  className="urgency-btn activate-btn focus-ring"
+                  onClick={activateEmergency}
+                  aria-label="Activate emergency mode"
+                >
+                  🚨 Yes - Activate Emergency
+                </button>
+                <button 
+                  className="urgency-btn dismiss-btn focus-ring"
+                  onClick={() => setShowUrgencyPrompt(false)}
+                  aria-label="Dismiss urgency prompt"
+                >
+                  ✖ No - Dismiss
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Chapter 7 - Emergency Mode Overlay */}
+        {emergencyMode && (
+          <div className="emergency-overlay" aria-live="assertive" role="alert">
+            <div className="emergency-content">
+              <div className="emergency-icon">🚨</div>
+              <h2 className="emergency-text">I NEED IMMEDIATE HELP</h2>
+              <button 
+                className="emergency-dismiss-btn focus-ring"
+                onClick={deactivateEmergency}
+                aria-label="Deactivate emergency mode"
+              >
+                ✖ Deactivate
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Chapter 7 - Caregiver Mode Toggle & Emergency Button */}
+        <div className="chapter7-controls">
+          <button
+            className={`caregiver-toggle focus-ring ${caregiverMode ? 'active' : ''}`}
+            onClick={toggleCaregiverMode}
+            aria-pressed={caregiverMode}
+            aria-label="Toggle caregiver display mode"
+          >
+            <span className="toggle-icon">{caregiverMode ? '👁️' : '👁️‍🗨️'}</span>
+            <span>Caregiver Mode</span>
+          </button>
+
+          <button
+            className="emergency-button focus-ring"
+            onClick={activateEmergency}
+            aria-label="Activate emergency mode"
+            disabled={emergencyMode}
+          >
+            <span className="emergency-icon">🚨</span>
+            <span>EMERGENCY</span>
+          </button>
+        </div>
+
+        {/* Chapter 7 - Communication History Panel */}
+        {history.length > 0 && (
+          <div className="history-panel">
+            <div className="history-header">
+              <h3 className="history-title">📜 Communication History</h3>
+              <button 
+                className="clear-history-btn focus-ring"
+                onClick={clearHistory}
+                aria-label="Clear communication history"
+              >
+                <Trash2 size={16} />
+                <span>Clear History</span>
+              </button>
+            </div>
+            <div className="history-scroll">
+              {history.map((item, index) => (
+                <div 
+                  key={index}
+                  className="history-item focus-ring"
+                  onClick={() => replayHistoryItem(item)}
+                  onKeyPress={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      replayHistoryItem(item);
+                    }
+                  }}
+                  role="button"
+                  tabIndex={0}
+                  aria-label={`Replay message: ${item}`}
+                >
+                  <span className="history-number">{index + 1}</span>
+                  <span className="history-text">{item}</span>
+                  <Volume2 size={16} className="replay-icon" />
                 </div>
               ))}
             </div>
