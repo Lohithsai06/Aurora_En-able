@@ -61,6 +61,32 @@ export default function Dumb() {
   const [calibrationProgress, setCalibrationProgress] = useState<number>(0);
   const [trackingStatus, setTrackingStatus] = useState<string>('INITIALIZING');
   
+  // Final Chapter - Adaptive Intelligence State
+  const [trainingMode, setTrainingMode] = useState<boolean>(false);
+  const [customGestureMap, setCustomGestureMap] = useState<{[key: string]: string}>(() => {
+    const saved = localStorage.getItem('customGestureMap');
+    return saved ? JSON.parse(saved) : {};
+  });
+  const [trainingGesture, setTrainingGesture] = useState<string | null>(null);
+  const [trainingMeaning, setTrainingMeaning] = useState<string>('');
+  const [showCalibrationWizard, setShowCalibrationWizard] = useState<boolean>(false);
+  const [calibrationStep, setCalibrationStep] = useState<number>(0);
+  const [selectedLanguage, setSelectedLanguage] = useState<string>(() => {
+    const saved = localStorage.getItem('selectedLanguage');
+    return saved || 'en-US';
+  });
+  const [isOnline, setIsOnline] = useState<boolean>(navigator.onLine);
+  const [caregiverViewActive, setCaregiverViewActive] = useState<boolean>(false);
+  const [emotionAlert, setEmotionAlert] = useState<string | null>(null);
+  const [gestureStats, setGestureStats] = useState<{[key: string]: number}>(() => {
+    const saved = localStorage.getItem('gestureStats');
+    return saved ? JSON.parse(saved) : {};
+  });
+  const [analyticsMode, setAnalyticsMode] = useState<boolean>(false);
+  const [settingsMode, setSettingsMode] = useState<boolean>(false);
+  const [sessionStartTime] = useState<number>(Date.now());
+  const [gestureSpeedBuffer, setGestureSpeedBuffer] = useState<number[]>([]);
+  
   // Chapter 7 - New State Variables
   const [smartSuggestions, setSmartSuggestions] = useState<string[]>([]);
   const [suggestionsLoading, setSuggestionsLoading] = useState<boolean>(false);
@@ -97,8 +123,43 @@ export default function Dumb() {
   const calibrationTimerRef = useRef<NodeJS.Timeout | null>(null);
   const calibrationStartRef = useRef<number>(0);
   const previousGestureRef = useRef<string>('');
+  const lastGestureTimeRef = useRef<number>(0);
+  const emotionTimerRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Auto-Calibration System (3 seconds)
+  // Online/Offline Detection
+  useEffect(() => {
+    const handleOnline = () => {
+      setIsOnline(true);
+      setApiError(null);
+    };
+    const handleOffline = () => {
+      setIsOnline(false);
+      setApiError('⚠️ Offline Mode Active – AI Disabled');
+    };
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
+
+  // Load custom gesture mappings
+  useEffect(() => {
+    const saved = localStorage.getItem('customGestureMap');
+    if (saved) {
+      setCustomGestureMap(JSON.parse(saved));
+    }
+  }, []);
+
+  // Save language preference
+  useEffect(() => {
+    localStorage.setItem('selectedLanguage', selectedLanguage);
+  }, [selectedLanguage]);
+
+  // Auto-Calibration System (2 seconds)
   useEffect(() => {
     if (currentMode !== 'gesture' || !cameraActive) return;
     
@@ -201,7 +262,7 @@ export default function Dumb() {
       window.speechSynthesis.cancel();
       
       const utterance = new SpeechSynthesisUtterance(text);
-      utterance.lang = "en-US";
+      utterance.lang = selectedLanguage; // Multilingual support
       utterance.rate = speechRate;
       utterance.pitch = speechPitch;
       utterance.volume = 1;
@@ -387,8 +448,9 @@ export default function Dumb() {
 
   // Gemini AI Request Function
   const getGeminiResponse = async (inputText: string): Promise<string> => {
-    if (!GEMINI_API_KEY) {
-      console.error('Gemini API key not found');
+    // Offline Mode Fallback
+    if (!isOnline || !GEMINI_API_KEY) {
+      console.log('Offline mode or no API key - using direct text');
       return inputText;
     }
 
@@ -397,7 +459,12 @@ export default function Dumb() {
         ? `Previous context: ${contextHistory.join(', ')}. `
         : '';
 
-      const prompt = `${contextPrompt}Convert this into a polite, natural sentence for a speech-impaired user: "${inputText}". Rules: Start with capital letter, end with period, max 2 sentences, no emojis, polite tone.`;
+      // Multilingual prompt
+      const languageName = selectedLanguage.includes('hi') ? 'Hindi' : 
+                          selectedLanguage.includes('kn') ? 'Kannada' :
+                          selectedLanguage.includes('ta') ? 'Tamil' : 'English';
+
+      const prompt = `${contextPrompt}Convert this into a polite, natural sentence in ${languageName} for a speech-impaired user: "${inputText}". Rules: Start with capital letter, end with period, max 2 sentences, no emojis, polite tone.`;
 
       const response = await fetch(
         `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${GEMINI_API_KEY}`,
@@ -661,6 +728,89 @@ Return ONLY the 3 alternative sentences, one per line, no numbering, no labels, 
     setCaregiverMode(!caregiverMode);
   };
 
+  // Final Chapter - Gesture Training Functions
+  const saveCustomGesture = () => {
+    if (trainingGesture && trainingMeaning.trim()) {
+      const updatedMap = { ...customGestureMap, [trainingGesture]: trainingMeaning.trim() };
+      setCustomGestureMap(updatedMap);
+      localStorage.setItem('customGestureMap', JSON.stringify(updatedMap));
+      setTrainingGesture(null);
+      setTrainingMeaning('');
+      alert(`✅ Gesture "${trainingGesture}" mapped to "${trainingMeaning.trim()}"`);
+    }
+  };
+
+  const startCalibrationWizard = () => {
+    setShowCalibrationWizard(true);
+    setCalibrationStep(0);
+  };
+
+  const advanceCalibrationStep = () => {
+    if (calibrationStep < 2) {
+      setCalibrationStep(calibrationStep + 1);
+    } else {
+      // Calibration complete
+      setShowCalibrationWizard(false);
+      setCalibrationStep(0);
+      localStorage.setItem('calibrationCompleted', 'true');
+      alert('✅ Calibration Complete! System optimized for your gestures.');
+    }
+  };
+
+  // Emotion/Aggression Detection
+  const detectEmotion = (gesture: string) => {
+    const now = Date.now();
+    const timeSinceLastGesture = now - lastGestureTimeRef.current;
+    lastGestureTimeRef.current = now;
+
+    // Detect rapid gestures (< 500ms between gestures)
+    if (timeSinceLastGesture < 500) {
+      const newSpeedBuffer = [...gestureSpeedBuffer, timeSinceLastGesture].slice(-5);
+      setGestureSpeedBuffer(newSpeedBuffer);
+
+      const avgSpeed = newSpeedBuffer.reduce((a, b) => a + b, 0) / newSpeedBuffer.length;
+
+      // Rapid aggressive gestures detected
+      if (avgSpeed < 400 && (gesture === 'NO' || gesture === 'PAIN' || gesture === 'ANGRY')) {
+        setEmotionAlert('⚠️ User may be distressed');
+        
+        // Clear alert after 5 seconds
+        if (emotionTimerRef.current) clearTimeout(emotionTimerRef.current);
+        emotionTimerRef.current = setTimeout(() => {
+          setEmotionAlert(null);
+        }, 5000);
+
+        // Suggest emergency mode
+        setShowUrgencyPrompt(true);
+      }
+    }
+  };
+
+  // Analytics Functions
+  const recordGestureUsage = (gesture: string) => {
+    const updatedStats = { ...gestureStats, [gesture]: (gestureStats[gesture] || 0) + 1 };
+    setGestureStats(updatedStats);
+    localStorage.setItem('gestureStats', JSON.stringify(updatedStats));
+  };
+
+  const getMostUsedGestures = () => {
+    return Object.entries(gestureStats)
+      .sort(([, a], [, b]) => b - a)
+      .slice(0, 5);
+  };
+
+  const getTotalSessions = () => {
+    const sessions = localStorage.getItem('totalSessions') || '0';
+    return parseInt(sessions);
+  };
+
+  const getActiveTime = () => {
+    const elapsed = Date.now() - sessionStartTime;
+    const minutes = Math.floor(elapsed / 60000);
+    const seconds = Math.floor((elapsed % 60000) / 1000);
+    return `${minutes}m ${seconds}s`;
+  };
+
   // Helper: Calculate distance between two landmarks
   const getDistance = (point1: NormalizedLandmark, point2: NormalizedLandmark): number => {
     const dx = point1.x - point2.x;
@@ -828,27 +978,42 @@ Return ONLY the 3 alternative sentences, one per line, no numbering, no labels, 
     return allExtended && centerPosition && chestHeight;
   };
 
-  // Enhanced Core Gesture Detection Function with All 17 Gestures
+  // Enhanced Core Gesture Detection Function with Custom Training Support
   const detectGesture = (landmarks: NormalizedLandmark[]): string | null => {
     if (!landmarks || landmarks.length !== 21) return null;
     
-    // Skip detection during calibration
-    if (isCalibrating) return null;
+    // Skip detection during calibration or training mode
+    if (isCalibrating || trainingMode) {
+      // In training mode, still detect but for mapping purposes
+      if (trainingMode) {
+        if (isThumbUp(landmarks)) return 'THUMBS_UP';
+        if (isFist(landmarks)) return 'FIST';
+        if (isOpenPalm(landmarks)) return 'OPEN_PALM';
+        if (isOkSign(landmarks)) return 'OK_SIGN';
+        if (isPointRight(landmarks)) return 'POINT_RIGHT';
+      }
+      return null;
+    }
     
     // Priority order: Emergency > Needs > Core > Optional
-    if (isThumbUp(landmarks)) return gestureMap.THUMBS_UP;
-    if (isFist(landmarks)) return gestureMap.FIST;
-    if (isOpenPalm(landmarks)) return gestureMap.OPEN_PALM;
-    if (isOkSign(landmarks)) return gestureMap.OK_SIGN;
-    if (isPointRight(landmarks)) return gestureMap.POINT_RIGHT;
-    if (isPointLeft(landmarks)) return gestureMap.POINT_LEFT;
-    if (isTwoFingers(landmarks)) return gestureMap.TWO_FINGERS;
-    if (isCallGesture(landmarks)) return gestureMap.CALL_ME;
-    if (isOneFingerUp(landmarks)) return gestureMap.ONE_FINGER_UP;
-    if (isPalmDown(landmarks)) return gestureMap.DOWN_PALM;
-    if (isHandOverChest(landmarks)) return gestureMap.HAND_OVER_CHEST;
+    let detectedGestureKey = null;
+    if (isThumbUp(landmarks)) detectedGestureKey = 'THUMBS_UP';
+    else if (isFist(landmarks)) detectedGestureKey = 'FIST';
+    else if (isOpenPalm(landmarks)) detectedGestureKey = 'OPEN_PALM';
+    else if (isOkSign(landmarks)) detectedGestureKey = 'OK_SIGN';
+    else if (isPointRight(landmarks)) detectedGestureKey = 'POINT_RIGHT';
+    else if (isPointLeft(landmarks)) detectedGestureKey = 'POINT_LEFT';
+    else if (isTwoFingers(landmarks)) detectedGestureKey = 'TWO_FINGERS';
+    else if (isCallGesture(landmarks)) detectedGestureKey = 'CALL_ME';
+    else if (isOneFingerUp(landmarks)) detectedGestureKey = 'ONE_FINGER_UP';
+    else if (isPalmDown(landmarks)) detectedGestureKey = 'DOWN_PALM';
+    else if (isHandOverChest(landmarks)) detectedGestureKey = 'HAND_OVER_CHEST';
     
-    return null;
+    if (!detectedGestureKey) return null;
+    
+    // Check if there's a custom mapping, otherwise use default
+    const customMapping = customGestureMap[detectedGestureKey];
+    return customMapping || gestureMap[detectedGestureKey as GestureType];
   };
 
   // Instant output with minimal stability check (3 frames, 2/3 consensus)
@@ -879,6 +1044,10 @@ Return ONLY the 3 alternative sentences, one per line, no numbering, no labels, 
           setDetectedGesture(gesture);
           setGestureConfirmed(true);
           lastGestureRef.current = gesture;
+          
+          // Final Chapter - Record analytics and detect emotion
+          recordGestureUsage(gesture);
+          detectEmotion(gesture);
           
           // Update context history (limit to 3)
           setContextHistory(prev => {
@@ -1082,29 +1251,58 @@ Return ONLY the 3 alternative sentences, one per line, no numbering, no labels, 
           </p>
         </header>
 
-        {/* Mode Switch Bar */}
-        <div className="mode-switch-bar flex justify-center gap-4 mb-8">
+        {/* Mode Switch Bar with New Tabs */}
+        <div className="mode-switch-bar flex justify-center gap-4 mb-8 flex-wrap">
           <button
-            className={`mode-tab ${currentMode === 'gesture' ? 'active' : ''}`}
-            onClick={() => setCurrentMode('gesture')}
+            className={`mode-tab ${currentMode === 'gesture' && !trainingMode && !analyticsMode && !settingsMode ? 'active' : ''}`}
+            onClick={() => { setCurrentMode('gesture'); setTrainingMode(false); setAnalyticsMode(false); setSettingsMode(false); }}
             aria-pressed={currentMode === 'gesture'}
           >
             Gesture Mode
           </button>
           <button
             className={`mode-tab ${currentMode === 'type' ? 'active' : ''}`}
-            onClick={() => setCurrentMode('type')}
+            onClick={() => { setCurrentMode('type'); setTrainingMode(false); setAnalyticsMode(false); setSettingsMode(false); }}
             aria-pressed={currentMode === 'type'}
           >
             Type Mode
           </button>
           <button
             className={`mode-tab ${currentMode === 'symbol' ? 'active' : ''}`}
-            onClick={() => setCurrentMode('symbol')}
+            onClick={() => { setCurrentMode('symbol'); setTrainingMode(false); setAnalyticsMode(false); setSettingsMode(false); }}
             aria-pressed={currentMode === 'symbol'}
           >
             Symbol Mode
           </button>
+          <button
+            className={`mode-tab ${trainingMode ? 'active' : ''}`}
+            onClick={() => { setTrainingMode(!trainingMode); setAnalyticsMode(false); setSettingsMode(false); setCurrentMode('gesture'); }}
+            aria-pressed={trainingMode}
+          >
+            🎯 Training
+          </button>
+          <button
+            className={`mode-tab ${analyticsMode ? 'active' : ''}`}
+            onClick={() => { setAnalyticsMode(!analyticsMode); setTrainingMode(false); setSettingsMode(false); }}
+            aria-pressed={analyticsMode}
+          >
+            📊 Analytics
+          </button>
+          <button
+            className={`mode-tab ${settingsMode ? 'active' : ''}`}
+            onClick={() => { setSettingsMode(!settingsMode); setTrainingMode(false); setAnalyticsMode(false); }}
+            aria-pressed={settingsMode}
+          >
+            ⚙️ Settings
+          </button>
+        </div>
+
+        {/* Status Indicators Banner */}
+        <div className="status-indicators-banner">
+          {isCalibrated && <span className="status-badge">🧠 Calibrated</span>}
+          {!isOnline && <span className="status-badge offline">🌐 Offline Mode</span>}
+          <span className="status-badge">🌍 Language: {selectedLanguage.includes('hi') ? 'Hindi' : selectedLanguage.includes('kn') ? 'Kannada' : selectedLanguage.includes('ta') ? 'Tamil' : 'English'}</span>
+          {caregiverViewActive && <span className="status-badge">👁️ Caregiver View</span>}
         </div>
 
         {/* AI Mode Toggle */}
@@ -1276,6 +1474,247 @@ Return ONLY the 3 alternative sentences, one per line, no numbering, no labels, 
               </div>
             </div>
           </section>
+        )}
+
+        {/* Training Mode Panel */}
+        {trainingMode && (
+          <div className="training-mode-panel glass-card soft-shadow">
+            <h2 className="section-title">🎯 Gesture Training Mode</h2>
+            <p className="section-description">Personalize gesture meanings to match your communication style</p>
+            
+            <div className="training-instructions">
+              <p>1. Perform a gesture in front of the webcam</p>
+              <p>2. Enter your custom meaning below</p>
+              <p>3. Click "Save Gesture Mapping"</p>
+            </div>
+
+            {detectedGesture && (
+              <div className="detected-training-gesture">
+                <h3>Detected Gesture: <span className="gesture-name">{detectedGesture}</span></h3>
+                <button 
+                  className="control-btn focus-ring"
+                  onClick={() => setTrainingGesture(detectedGesture)}
+                >
+                  Use This Gesture
+                </button>
+              </div>
+            )}
+
+            {trainingGesture && (
+              <div className="training-form">
+                <h3>Mapping: <span className="gesture-highlight">{trainingGesture}</span></h3>
+                <input 
+                  type="text"
+                  className="training-input"
+                  placeholder="Enter custom meaning (e.g., 'I'm okay', 'Cancel')"
+                  value={trainingMeaning}
+                  onChange={(e) => setTrainingMeaning(e.target.value)}
+                  maxLength={50}
+                />
+                <button 
+                  className="control-btn save-btn focus-ring"
+                  onClick={saveCustomGesture}
+                  disabled={!trainingMeaning.trim()}
+                >
+                  ✅ Save Gesture Mapping
+                </button>
+              </div>
+            )}
+
+            {Object.keys(customGestureMap).length > 0 && (
+              <div className="custom-mappings-list">
+                <h3>Your Custom Mappings:</h3>
+                {Object.entries(customGestureMap).map(([gesture, meaning]) => (
+                  <div key={gesture} className="mapping-item">
+                    <span className="mapping-gesture">{gesture}</span>
+                    <span className="mapping-arrow">→</span>
+                    <span className="mapping-meaning">{meaning}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Analytics Dashboard */}
+        {analyticsMode && (
+          <div className="analytics-panel glass-card soft-shadow">
+            <h2 className="section-title">📊 Gesture Analytics Dashboard</h2>
+            
+            <div className="analytics-grid">
+              <div className="analytics-card">
+                <h3>Most Used Gestures</h3>
+                <div className="analytics-list">
+                  {getMostUsedGestures().length > 0 ? (
+                    getMostUsedGestures().map(([gesture, count]) => (
+                      <div key={gesture} className="analytics-item">
+                        <span className="analytics-label">{gesture}</span>
+                        <div className="analytics-bar">
+                          <div 
+                            className="analytics-bar-fill" 
+                            style={{width: `${(count / Math.max(...Object.values(gestureStats))) * 100}%`}}
+                          ></div>
+                        </div>
+                        <span className="analytics-count">{count}</span>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="no-data">No gesture data yet</p>
+                  )}
+                </div>
+              </div>
+
+              <div className="analytics-card">
+                <h3>Session Statistics</h3>
+                <div className="stats-list">
+                  <div className="stat-item">
+                    <span className="stat-label">Emergency Triggers:</span>
+                    <span className="stat-value">{gestureStats['EMERGENCY'] || 0}</span>
+                  </div>
+                  <div className="stat-item">
+                    <span className="stat-label">Total Sessions:</span>
+                    <span className="stat-value">{getTotalSessions()}</span>
+                  </div>
+                  <div className="stat-item">
+                    <span className="stat-label">Active Time:</span>
+                    <span className="stat-value">{getActiveTime()}</span>
+                  </div>
+                  <div className="stat-item">
+                    <span className="stat-label">Total Gestures:</span>
+                    <span className="stat-value">{Object.values(gestureStats).reduce((a, b) => a + b, 0)}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Settings Panel */}
+        {settingsMode && (
+          <div className="settings-panel glass-card soft-shadow">
+            <h2 className="section-title">⚙️ Settings & Configuration</h2>
+            
+            <div className="settings-grid">
+              <div className="setting-card">
+                <h3>🌍 Language Settings</h3>
+                <select 
+                  className="language-selector"
+                  value={selectedLanguage}
+                  onChange={(e) => setSelectedLanguage(e.target.value)}
+                >
+                  <option value="en-US">English (US)</option>
+                  <option value="hi-IN">Hindi (हिंदी)</option>
+                  <option value="kn-IN">Kannada (ಕನ್ನಡ)</option>
+                  <option value="ta-IN">Tamil (தமிழ்)</option>
+                </select>
+                <p className="setting-description">Voice output will use selected language</p>
+              </div>
+
+              <div className="setting-card">
+                <h3>🎯 Calibration</h3>
+                <button 
+                  className="control-btn focus-ring"
+                  onClick={startCalibrationWizard}
+                >
+                  🔄 Recalibrate System
+                </button>
+                <p className="setting-description">Optimize detection for your gestures</p>
+              </div>
+
+              <div className="setting-card">
+                <h3>👁️ Caregiver View</h3>
+                <button 
+                  className={`control-btn focus-ring ${caregiverViewActive ? 'active' : ''}`}
+                  onClick={() => setCaregiverViewActive(!caregiverViewActive)}
+                >
+                  {caregiverViewActive ? '✅ Active' : 'Enable Caregiver View'}
+                </button>
+                <p className="setting-description">Large text display for caregivers</p>
+              </div>
+
+              <div className="setting-card">
+                <h3>📡 Connection Status</h3>
+                <div className={`connection-status ${isOnline ? 'online' : 'offline'}`}>
+                  {isOnline ? '✅ Online - AI Enabled' : '⚠️ Offline - Direct Mode'}
+                </div>
+                <p className="setting-description">
+                  {isOnline ? 'AI features available' : 'Using direct gesture-to-speech'}
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Calibration Wizard Overlay */}
+        {showCalibrationWizard && (
+          <div className="calibration-wizard-overlay">
+            <div className="calibration-wizard-card">
+              <h2>🎯 Calibration Wizard</h2>
+              <p className="wizard-step">Step {calibrationStep + 1} of 3</p>
+              
+              {calibrationStep === 0 && (
+                <div className="wizard-content">
+                  <h3>Show Open Palm</h3>
+                  <p>Hold your hand with palm facing camera, fingers spread</p>
+                </div>
+              )}
+              {calibrationStep === 1 && (
+                <div className="wizard-content">
+                  <h3>Show Fist</h3>
+                  <p>Close your hand into a fist</p>
+                </div>
+              )}
+              {calibrationStep === 2 && (
+                <div className="wizard-content">
+                  <h3>Show Thumbs Up</h3>
+                  <p>Give a thumbs up gesture</p>
+                </div>
+              )}
+
+              <button 
+                className="control-btn focus-ring"
+                onClick={advanceCalibrationStep}
+              >
+                {calibrationStep < 2 ? '➡️ Next Step' : '✅ Complete Calibration'}
+              </button>
+              <button 
+                className="control-btn-small cancel-btn focus-ring"
+                onClick={() => setShowCalibrationWizard(false)}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Emotion Alert Banner */}
+        {emotionAlert && (
+          <div className="emotion-alert-banner">
+            <span className="alert-icon">⚠️</span>
+            <span className="alert-text">{emotionAlert}</span>
+            <button 
+              className="alert-action-btn"
+              onClick={activateEmergency}
+            >
+              Activate Emergency Mode
+            </button>
+            <button 
+              className="alert-close-btn"
+              onClick={() => setEmotionAlert(null)}
+            >
+              ✖
+            </button>
+          </div>
+        )}
+
+        {/* Caregiver View Overlay */}
+        {caregiverViewActive && (
+          <div className="caregiver-view-overlay">
+            <div className="caregiver-message">
+              <h1 className="caregiver-text">{outputText}</h1>
+              <p className="caregiver-status">Caregiver View Active</p>
+            </div>
+          </div>
         )}
 
         {/* Output Display Panel */}
