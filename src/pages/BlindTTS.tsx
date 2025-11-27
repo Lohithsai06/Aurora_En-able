@@ -1,10 +1,13 @@
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Volume2, Square, Pause, Play, Trash2, ArrowLeft, Mic2, Settings, Sparkles } from 'lucide-react';
+import { Volume2, Square, Pause, Play, Trash2, ArrowLeft, Mic2, Settings, Sparkles, Zap, Loader2 } from 'lucide-react';
+import { sendToOpenRouter } from '../lib/openrouter';
 import '../styles/blind-tts.css';
 
 export default function BlindTTS() {
   const [text, setText] = useState('');
+  const [summary, setSummary] = useState('');
+  const [isSummarizing, setIsSummarizing] = useState(false);
   const [announcement, setAnnouncement] = useState('Text to Speech ready. Type something and press Enter to hear it.');
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
@@ -12,6 +15,7 @@ export default function BlindTTS() {
   const [selectedVoice, setSelectedVoice] = useState<SpeechSynthesisVoice | null>(null);
   const [speed, setSpeed] = useState(1.0);
   const [isVisible, setIsVisible] = useState(false);
+  const [useAI, setUseAI] = useState(false);
   
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const navigate = useNavigate();
@@ -35,17 +39,49 @@ export default function BlindTTS() {
     };
   }, []);
 
-  // Speak text
-  const speak = () => {
+  // AI Summarization function
+  const aiSummarize = async () => {
     if (!text.trim()) {
-      setAnnouncement('No text to speak. Please type something first.');
+      setAnnouncement('No text to summarize. Please type something first.');
+      return;
+    }
+
+    setIsSummarizing(true);
+    setAnnouncement('Summarizing with AI. Please wait...');
+    setSummary('');
+
+    try {
+      const prompt = `You are an AI assistant helping blind users. Summarize the following text in a clear, concise, and spoken-friendly way. Keep it short (2-3 sentences max) and easy to understand when read aloud:\n\n${text}`;
+      
+      const result = await sendToOpenRouter(prompt);
+      
+      setSummary(result);
+      setAnnouncement('Summary ready. Speaking now...');
+      
+      // Auto-speak the summary
+      setTimeout(() => speakText(result), 500);
+      
+    } catch (error) {
+      console.error('AI Summarization error:', error);
+      const errorMsg = error instanceof Error ? error.message : 'Failed to summarize text. Please try again.';
+      setAnnouncement(errorMsg);
+      setSummary('');
+    } finally {
+      setIsSummarizing(false);
+    }
+  };
+
+  // Speak text (can be original text or summary)
+  const speakText = (textToSpeak: string) => {
+    if (!textToSpeak.trim()) {
+      setAnnouncement('No text to speak.');
       return;
     }
 
     try {
       window.speechSynthesis.cancel();
       
-      const utterance = new SpeechSynthesisUtterance(text);
+      const utterance = new SpeechSynthesisUtterance(textToSpeak);
       if (selectedVoice) {
         utterance.voice = selectedVoice;
       }
@@ -78,6 +114,20 @@ export default function BlindTTS() {
     }
   };
 
+  // Speak original text or trigger AI summary
+  const speak = async () => {
+    if (!text.trim()) {
+      setAnnouncement('No text to speak. Please type something first.');
+      return;
+    }
+
+    if (useAI) {
+      await aiSummarize();
+    } else {
+      speakText(text);
+    }
+  };
+
   // Pause speech
   const pauseSpeech = () => {
     if (isSpeaking && !isPaused) {
@@ -107,9 +157,21 @@ export default function BlindTTS() {
   // Clear text
   const clearText = () => {
     setText('');
+    setSummary('');
     stopSpeech();
     setAnnouncement('Text cleared.');
     textareaRef.current?.focus();
+  };
+
+  // Replay summary or original text
+  const replayAudio = () => {
+    if (summary) {
+      speakText(summary);
+      setAnnouncement('Replaying AI summary.');
+    } else if (text) {
+      speakText(text);
+      setAnnouncement('Replaying text.');
+    }
   };
 
   // Handle voice change
@@ -156,7 +218,7 @@ export default function BlindTTS() {
         }
       } else if (key === 'r') {
         e.preventDefault();
-        resumeSpeech();
+        replayAudio();
       } else if (key === 'c') {
         e.preventDefault();
         clearText();
@@ -169,7 +231,7 @@ export default function BlindTTS() {
 
     window.addEventListener('keydown', handleGlobalKeyDown);
     return () => window.removeEventListener('keydown', handleGlobalKeyDown);
-  }, [isSpeaking, isPaused, navigate]);
+  }, [isSpeaking, isPaused, summary, text, navigate]);
 
   // Initial announcement and animation
   useEffect(() => {
@@ -177,7 +239,7 @@ export default function BlindTTS() {
     
     setTimeout(() => {
       const msg = new SpeechSynthesisUtterance(
-        'Text to Speech page loaded. Type your text and press Enter to hear it. Press S to stop, P to pause, R to resume, C to clear, or B to go back.'
+        'Text to Speech page loaded. Type your text and press Enter to speak it. Toggle AI mode to get a summary first. Press S to stop, P to pause, R to replay, C to clear, or B to go back.'
       );
       msg.rate = 0.9;
       window.speechSynthesis.speak(msg);
@@ -213,10 +275,38 @@ export default function BlindTTS() {
           <div className="tts-icon-badge">
             <Volume2 size={48} />
           </div>
-          <h1 className="tts-title">Text-to-Speech</h1>
+          <h1 className="tts-title">Text-to-Speech with AI</h1>
           <p className="tts-subtitle">
             <Sparkles size={24} />
-            <span>Type something and press Enter to hear it</span>
+            <span>Type text, optionally summarize with AI, then listen</span>
+          </p>
+        </div>
+
+        {/* AI Toggle */}
+        <div className="ai-toggle-card">
+          <div className="ai-toggle-content">
+            <div className="ai-toggle-label">
+              <Zap size={24} />
+              <span>AI Summary Mode</span>
+            </div>
+            <label className="toggle-switch">
+              <input
+                type="checkbox"
+                checked={useAI}
+                onChange={(e) => {
+                  setUseAI(e.target.checked);
+                  setAnnouncement(e.target.checked ? 'AI summarization enabled' : 'AI summarization disabled');
+                }}
+                aria-label="Toggle AI summarization"
+              />
+              <span className="toggle-slider"></span>
+            </label>
+          </div>
+          <p className="ai-toggle-description">
+            {useAI 
+              ? '✅ Enabled: Text will be summarized by AI before speaking'
+              : '❌ Disabled: Original text will be spoken directly'
+            }
           </p>
         </div>
 
@@ -233,8 +323,8 @@ export default function BlindTTS() {
               <span>Stop</span>
             </div>
             <div className="shortcut-item">
-              <kbd>P</kbd>
-              <span>Pause/Resume</span>
+              <kbd>R</kbd>
+              <span>Replay</span>
             </div>
             <div className="shortcut-item">
               <kbd>C</kbd>
@@ -269,6 +359,25 @@ export default function BlindTTS() {
             autoFocus
           />
         </div>
+
+        {/* AI Summary Display */}
+        {summary && (
+          <div className="summary-display">
+            <div className="summary-header">
+              <Sparkles size={24} />
+              <h3>AI Summary</h3>
+            </div>
+            <p className="summary-text">{summary}</p>
+          </div>
+        )}
+
+        {/* Loading Indicator */}
+        {isSummarizing && (
+          <div className="loading-card">
+            <Loader2 size={32} className="spin-animation" />
+            <span>Summarizing with DeepSeek AI...</span>
+          </div>
+        )}
 
         {/* Settings Panel */}
         <div className="settings-panel">
@@ -340,12 +449,23 @@ export default function BlindTTS() {
           <button
             onClick={speak}
             className="control-btn control-btn-speak"
-            aria-label="Speak text"
-            disabled={!text.trim()}
+            aria-label={useAI ? "Summarize and speak" : "Speak text"}
+            disabled={!text.trim() || isSummarizing}
           >
-            <Play size={28} />
-            <span>Speak</span>
+            {useAI ? <Zap size={28} /> : <Play size={28} />}
+            <span>{useAI ? 'Summarize & Speak' : 'Speak'}</span>
             <kbd>Enter</kbd>
+          </button>
+
+          <button
+            onClick={replayAudio}
+            className="control-btn control-btn-replay"
+            aria-label="Replay audio"
+            disabled={(!summary && !text) || isSummarizing}
+          >
+            <Volume2 size={28} />
+            <span>Replay</span>
+            <kbd>R</kbd>
           </button>
 
           <button
@@ -367,7 +487,7 @@ export default function BlindTTS() {
           >
             <Play size={28} />
             <span>Resume</span>
-            <kbd>R</kbd>
+            <kbd>P</kbd>
           </button>
 
           <button
