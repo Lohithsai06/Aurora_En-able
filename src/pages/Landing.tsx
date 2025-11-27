@@ -1,7 +1,8 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useKeyPress } from '../hooks/useKeyPress';
 import BigButton from '../components/BigButton';
+import { Eye, Ear, MessageSquare, Brain, Sparkles, Shield, Zap } from 'lucide-react';
 import '../styles/landing.css';
 
 export default function Landing() {
@@ -9,8 +10,11 @@ export default function Landing() {
   const enterPressed = useKeyPress('Enter');
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const hasNavigated = useRef(false);
+  const [isVisible, setIsVisible] = useState(false);
 
   useEffect(() => {
+    setIsVisible(true);
+    
     // Create audio instruction
     const utterance = new SpeechSynthesisUtterance(
       'Welcome to En-able. If you are visually impaired, press Enter to navigate to the blind assistance page. Otherwise, click the button to continue to login.'
@@ -38,57 +42,119 @@ export default function Landing() {
 
   return (
     <div className="landing-page">
-      <div className="landing-container fade-in">
-        <div className="landing-content">
-          <h1 className="landing-title">
-            Welcome to <span className="text-gradient">En-able</span>
+      {/* Animated background elements */}
+      <div className="bg-decoration">
+        <div className="floating-circle circle-1"></div>
+        <div className="floating-circle circle-2"></div>
+        <div className="floating-circle circle-3"></div>
+      </div>
+
+      <div className={`landing-container ${isVisible ? 'fade-in' : ''}`}>
+        {/* Hero Section */}
+        <div className="hero-section">
+          <div className="hero-badge">
+            <Sparkles size={16} />
+            <span>Accessibility First Platform</span>
+          </div>
+          
+          <h1 className="hero-title">
+            Welcome to <span className="brand-gradient">En-able</span>
           </h1>
-          <p className="landing-subtitle">
-            Empowering accessibility for everyone
+          
+          <p className="hero-subtitle">
+            Empowering everyone with intelligent accessibility tools designed for independence and inclusion
           </p>
 
-          <div className="landing-cta slide-up">
-            <div className="cta-box">
-              <p className="cta-text">
-                👁️ If visually impaired, press <kbd className="kbd-key">ENTER</kbd>
-              </p>
+          {/* Keyboard Shortcut Alert */}
+          <div className="keyboard-alert">
+            <div className="alert-icon">
+              <Eye size={24} />
             </div>
+            <p className="alert-text">
+              If visually impaired, press <kbd className="kbd-key">ENTER</kbd> for voice navigation
+            </p>
           </div>
 
-          <div className="landing-buttons">
+          {/* CTA Buttons */}
+          <div className="cta-buttons">
             <BigButton 
               onClick={() => navigate('/login')}
               variant="primary"
               ariaLabel="Continue to Login"
             >
-              Continue to Login
+              Get Started
             </BigButton>
             
             <BigButton 
               onClick={() => navigate('/dashboard')}
               variant="secondary"
-              ariaLabel="Not visually impaired? Click here"
+              ariaLabel="Explore Dashboard"
             >
-              Not visually impaired? Click here
+              Explore Dashboard
             </BigButton>
           </div>
+        </div>
 
-          <div className="landing-features">
-            <div className="feature-item">
-              <span className="feature-icon">👁️</span>
-              <span>Visual Assistance</span>
+        {/* Features Grid */}
+        <div className="features-section">
+          <h2 className="features-title">Comprehensive Accessibility Solutions</h2>
+          
+          <div className="features-grid">
+            <div className="feature-card">
+              <div className="feature-card-icon blue">
+                <Eye size={32} />
+              </div>
+              <h3>Visual Assistance</h3>
+              <p>Screen readers, voice navigation, and high-contrast modes for the visually impaired</p>
             </div>
-            <div className="feature-item">
-              <span className="feature-icon">👂</span>
-              <span>Hearing Support</span>
+
+            <div className="feature-card">
+              <div className="feature-card-icon purple">
+                <Ear size={32} />
+              </div>
+              <h3>Hearing Support</h3>
+              <p>Visual indicators, live captions, and sign language resources for the deaf community</p>
             </div>
-            <div className="feature-item">
-              <span className="feature-icon">🗣️</span>
-              <span>Speech Tools</span>
+
+            <div className="feature-card">
+              <div className="feature-card-icon green">
+                <MessageSquare size={32} />
+              </div>
+              <h3>Speech Tools</h3>
+              <p>Text-to-speech, communication boards, and alternative input methods</p>
             </div>
-            <div className="feature-item">
-              <span className="feature-icon">🧠</span>
-              <span>Focus Aids</span>
+
+            <div className="feature-card">
+              <div className="feature-card-icon orange">
+                <Brain size={32} />
+              </div>
+              <h3>Focus Aids</h3>
+              <p>Pomodoro timers, task management, and distraction-free environments for ADHD</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Why Choose Section */}
+        <div className="why-section">
+          <div className="why-card">
+            <Shield size={24} />
+            <div>
+              <h4>Privacy First</h4>
+              <p>Your data stays secure and private</p>
+            </div>
+          </div>
+          <div className="why-card">
+            <Zap size={24} />
+            <div>
+              <h4>Lightning Fast</h4>
+              <p>Optimized for speed and performance</p>
+            </div>
+          </div>
+          <div className="why-card">
+            <Sparkles size={24} />
+            <div>
+              <h4>Free Forever</h4>
+              <p>Always accessible to everyone</p>
             </div>
           </div>
         </div>
