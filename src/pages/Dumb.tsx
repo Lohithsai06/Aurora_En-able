@@ -20,6 +20,8 @@ const gestureMap = {
 
 type GestureType = keyof typeof gestureMap;
 
+const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
+
 export default function Dumb() {
   const [currentMode, setCurrentMode] = useState<Mode>('gesture');
   const [outputText, setOutputText] = useState<string>('Your message will appear here');
@@ -28,6 +30,9 @@ export default function Dumb() {
   const [cameraActive, setCameraActive] = useState<boolean>(true);
   const [detectedGesture, setDetectedGesture] = useState<string | null>(null);
   const [gestureConfirmed, setGestureConfirmed] = useState<boolean>(false);
+  const [aiLoading, setAiLoading] = useState<boolean>(false);
+  const [aiSuggestions, setAiSuggestions] = useState<string[]>([]);
+  const [contextHistory, setContextHistory] = useState<string[]>([]);
   
   const webcamRef = useRef<Webcam>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -65,6 +70,110 @@ export default function Dumb() {
 
   const toggleCamera = () => {
     setCameraActive(!cameraActive);
+  };
+
+  const toggleAiMode = () => {
+    setAiMode(!aiMode);
+  };
+
+  // Gemini AI Request Function
+  const getGeminiResponse = async (inputText: string): Promise<string> => {
+    if (!GEMINI_API_KEY) {
+      console.error('Gemini API key not found');
+      return inputText;
+    }
+
+    try {
+      const contextPrompt = contextHistory.length > 0
+        ? `Previous context: ${contextHistory.join(', ')}. `
+        : '';
+
+      const prompt = `${contextPrompt}Convert this into a polite, natural sentence for a speech-impaired user: "${inputText}". Rules: Start with capital letter, end with period, max 2 sentences, no emojis, polite tone.`;
+
+      const response = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${GEMINI_API_KEY}`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            contents: [{
+              parts: [{ text: prompt }]
+            }]
+          })
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error('Gemini API request failed');
+      }
+
+      const data = await response.json();
+      const aiText = data.candidates?.[0]?.content?.parts?.[0]?.text || inputText;
+      
+      // Clean and format response
+      return aiText.trim().replace(/[""]/g, '"');
+    } catch (error) {
+      console.error('Gemini API error:', error);
+      return inputText; // Fallback to basic text
+    }
+  };
+
+  // Get AI Suggestions
+  const getAiSuggestions = async (inputText: string): Promise<void> => {
+    if (!GEMINI_API_KEY || !aiMode) return;
+
+    try {
+      const prompt = `Provide 3 alternative ways to say "${inputText}" with different tones:
+1. Friendly tone
+2. Urgent tone
+3. Neutral tone
+
+Format: Return only the 3 sentences separated by newlines, no numbering or labels.`;
+
+      const response = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${GEMINI_API_KEY}`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            contents: [{
+              parts: [{ text: prompt }]
+            }]
+          })
+        }
+      );
+
+      if (response.ok) {
+        const data = await response.json();
+        const aiText = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+        const suggestions = aiText
+          .split('\n')
+          .filter(line => line.trim())
+          .map(line => line.replace(/^\d+\.\s*/, '').trim())
+          .slice(0, 3);
+        
+        setAiSuggestions(suggestions);
+      }
+    } catch (error) {
+      console.error('AI Suggestions error:', error);
+    }
+  };
+
+  // Regenerate AI Sentence
+  const regenerateAiSentence = async () => {
+    if (!detectedGesture || !aiMode) return;
+    
+    setAiLoading(true);
+    const aiResponse = await getGeminiResponse(detectedGesture);
+    setOutputText(aiResponse);
+    setAiLoading(false);
+    
+    // Get new suggestions
+    await getAiSuggestions(detectedGesture);
   };
 
   // Helper: Calculate distance between two landmarks
@@ -174,7 +283,7 @@ export default function Dumb() {
   };
 
   // Update output with stability check
-  const updateGestureOutput = (gesture: string) => {
+  const updateGestureOutput = async (gesture: string) => {
     // Add to buffer
     gestureBufferRef.current.push(gesture);
     
@@ -194,11 +303,31 @@ export default function Dumb() {
         }
         
         // Debounce gesture update
-        debounceTimerRef.current = setTimeout(() => {
-          setOutputText(gesture);
+        debounceTimerRef.current = setTimeout(async () => {
           setDetectedGesture(gesture);
           setGestureConfirmed(true);
           lastGestureRef.current = gesture;
+          
+          // Update context history (limit to 3)
+          setContextHistory(prev => {
+            const newContext = [gesture, ...prev].slice(0, 3);
+            return newContext;
+          });
+          
+          // AI Mode Processing
+          if (aiMode) {
+            setAiLoading(true);
+            const aiResponse = await getGeminiResponse(gesture);
+            setOutputText(aiResponse);
+            setAiLoading(false);
+            
+            // Get suggestions
+            await getAiSuggestions(gesture);
+          } else {
+            // Basic Mode - show raw gesture
+            setOutputText(gesture);
+            setAiSuggestions([]);
+          }
           
           // Add to history (limit to 5)
           setHistory(prev => {
@@ -367,17 +496,43 @@ export default function Dumb() {
           </button>
         </div>
 
+        {/* AI Mode Toggle */}
+        <div className="ai-mode-toggle-container">
+          <label className="ai-toggle-label">
+            <span className="toggle-text">Basic Mode</span>
+            <button
+              className={`ai-toggle-switch ${aiMode ? 'active' : ''}`}
+              onClick={toggleAiMode}
+              role="switch"
+              aria-checked={aiMode}
+              aria-label="Toggle AI mode"
+            >
+              <span className="toggle-slider"></span>
+            </button>
+            <span className="toggle-text ai-text">
+              AI Mode 🤖
+            </span>
+          </label>
+        </div>
+
         {/* Output Display Panel */}
-        <div className={`output-panel ${gestureConfirmed ? 'gesture-detected' : ''}`}>
+        <div className={`output-panel ${gestureConfirmed ? 'gesture-detected' : ''} ${aiLoading ? 'ai-loading' : ''}`}>
           <div 
             className="output-text"
             aria-live="polite"
             aria-atomic="true"
           >
-            {outputText}
+            {aiLoading ? (
+              <div className="loading-indicator">
+                <div className="spinner"></div>
+                <span>Thinking...</span>
+              </div>
+            ) : (
+              outputText
+            )}
           </div>
           
-          {detectedGesture && (
+          {detectedGesture && !aiLoading && (
             <div className="gesture-label">
               Gesture Detected: {detectedGesture}
             </div>
@@ -388,6 +543,7 @@ export default function Dumb() {
               className="control-btn speak-btn focus-ring"
               onClick={handleSpeak}
               aria-label="Speak message"
+              disabled={aiLoading}
             >
               <Volume2 size={24} />
               <span>Speak</span>
@@ -397,6 +553,7 @@ export default function Dumb() {
               className="control-btn clear-btn focus-ring"
               onClick={handleClear}
               aria-label="Clear message"
+              disabled={aiLoading}
             >
               <Trash2 size={24} />
               <span>Clear</span>
@@ -406,12 +563,52 @@ export default function Dumb() {
               className="control-btn copy-btn focus-ring"
               onClick={handleCopy}
               aria-label="Copy message"
+              disabled={aiLoading}
             >
               <Copy size={24} />
               <span>Copy</span>
             </button>
+
+            {aiMode && detectedGesture && !aiLoading && (
+              <button 
+                className="control-btn regenerate-btn focus-ring"
+                onClick={regenerateAiSentence}
+                aria-label="Regenerate AI sentence"
+              >
+                <span className="regenerate-icon">🔁</span>
+                <span>Regenerate</span>
+              </button>
+            )}
           </div>
         </div>
+
+        {/* AI Suggestions Panel */}
+        {aiMode && aiSuggestions.length > 0 && !aiLoading && (
+          <div className="ai-suggestions-panel">
+            <h3 className="suggestions-title">AI Suggestions</h3>
+            <div className="suggestions-list">
+              {aiSuggestions.map((suggestion, index) => (
+                <div 
+                  key={index} 
+                  className="suggestion-item"
+                  onClick={() => setOutputText(suggestion)}
+                  role="button"
+                  tabIndex={0}
+                  onKeyPress={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      setOutputText(suggestion);
+                    }
+                  }}
+                >
+                  <span className="suggestion-label">
+                    {index === 0 ? '😊 Friendly' : index === 1 ? '⚡ Urgent' : '📝 Neutral'}
+                  </span>
+                  <p className="suggestion-text">{suggestion}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Webcam Section - Only visible in Gesture Mode */}
         {currentMode === 'gesture' && (
