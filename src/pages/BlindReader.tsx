@@ -3,22 +3,207 @@ import { useNavigate } from 'react-router-dom';
 import { Globe, ArrowLeft, Keyboard } from 'lucide-react';
 import { sendToOpenRouter } from '../lib/openrouter';
 
+// Block type definition
+interface ContentBlock {
+  type: 'heading' | 'paragraph' | 'list';
+  text: string;
+}
+
 export default function BlindReader() {
   const navigate = useNavigate();
-  const [blocks, setBlocks] = useState<string[]>([]);
+  const [blocks, setBlocks] = useState<ContentBlock[]>([]);
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [announcement, setAnnouncement] = useState('');
   const [isVisible, setIsVisible] = useState(false);
 
-  // Extract readable content (placeholder)
+  // Segment long text into readable chunks (2 sentences max)
+  function segmentText(text: string): string[] {
+    const sentences = text.split(/(?<=[.?!])\s+/);
+    const segments = [];
+
+    for (let i = 0; i < sentences.length; i += 2) {
+      const chunk = sentences.slice(i, i + 2).join(' ');
+      if (chunk.trim()) {
+        segments.push(chunk);
+      }
+    }
+
+    return segments.length > 0 ? segments : [text];
+  }
+
+  // Normalize and clean text
+  function cleanText(text: string): string {
+    return text
+      .replace(/\s+/g, ' ')
+      .replace(/\n+/g, ' ')
+      .trim();
+  }
+
+  // Junk filtering
+  function isJunk(text: string, tagName: string): boolean {
+    // Too short
+    if (text.length < 5) return true;
+
+    // Unwanted content patterns
+    const junkPatterns = [
+      /cookie/i,
+      /subscribe/i,
+      /advert/i,
+      /advertisement/i,
+      /signup/i,
+      /sign up/i,
+      /newsletter/i,
+      /privacy policy/i,
+      /terms of service/i,
+      /©\s*\d{4}/,
+      /all rights reserved/i
+    ];
+
+    if (junkPatterns.some(pattern => pattern.test(text))) return true;
+
+    // Numbers only
+    if (/^\d+$/.test(text)) return true;
+
+    // Navigation-like text
+    if (tagName === 'A' && text.length < 20) return true;
+
+    // Repetitive words (same word 3+ times)
+    const words = text.toLowerCase().split(/\s+/);
+    const wordCounts = words.reduce((acc, word) => {
+      acc[word] = (acc[word] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+    
+    if (Object.values(wordCounts).some(count => count >= 3)) return true;
+
+    return false;
+  }
+
+  // Calculate content score for readability
+  function getContentScore(element: Element): number {
+    let score = 0;
+    const text = element.textContent || '';
+    
+    // Positive signals
+    if (text.length > 100) score += 10;
+    if (text.length > 200) score += 10;
+    if (element.querySelectorAll('p').length > 2) score += 5;
+    if (text.match(/\./g)?.length || 0 > 5) score += 5;
+    
+    // Negative signals
+    const className = element.className || '';
+    const id = element.id || '';
+    const negativePatterns = [
+      'nav', 'menu', 'sidebar', 'footer', 'header', 
+      'ad', 'comment', 'social', 'share', 'related'
+    ];
+    
+    if (negativePatterns.some(p => className.includes(p) || id.includes(p))) {
+      score -= 20;
+    }
+    
+    return score;
+  }
+
+  // Find main content area using simplified readability algorithm
+  function findMainContent(): Element | null {
+    const candidates = document.querySelectorAll('article, main, [role="main"], .content, .post, .article, #content, #main');
+    
+    if (candidates.length > 0) {
+      let bestCandidate: Element | null = null;
+      let bestScore = -Infinity;
+      
+      candidates.forEach(candidate => {
+        const score = getContentScore(candidate);
+        if (score > bestScore) {
+          bestScore = score;
+          bestCandidate = candidate;
+        }
+      });
+      
+      return bestCandidate;
+    }
+    
+    // Fallback: find div with most paragraph content
+    const divs = Array.from(document.querySelectorAll('div'));
+    return divs.reduce((best, current) => {
+      const currentScore = getContentScore(current);
+      const bestScore = best ? getContentScore(best) : -Infinity;
+      return currentScore > bestScore ? current : best;
+    }, null as Element | null);
+  }
+
+  // Extract readable content
   function extractReadableContent() {
-    // TODO: to be implemented next chapter
-    // will extract <p>, <h1>, <h2>, <li>, etc.
-    setBlocks([
-      "Loading blocks…",
-      "This is a placeholder for extracted content",
-      "Navigation will be implemented in next chapter"
-    ]);
+    try {
+      // Find main content area
+      const mainContent = findMainContent() || document.body;
+      
+      // Extract readable elements
+      const nodes = mainContent.querySelectorAll('h1, h2, h3, h4, p, li, blockquote');
+      const extracted: ContentBlock[] = [];
+      
+      nodes.forEach(el => {
+        const rawText = el.textContent?.trim() || '';
+        if (!rawText) return;
+        
+        const text = cleanText(rawText);
+        const tagName = el.tagName;
+        
+        // Apply junk filtering
+        if (isJunk(text, tagName)) return;
+        
+        // Categorize by element type
+        if (tagName === 'H1' || tagName === 'H2' || tagName === 'H3' || tagName === 'H4') {
+          extracted.push({ type: 'heading', text });
+        } else if (tagName === 'LI') {
+          extracted.push({ type: 'list', text: '• ' + text });
+        } else if (tagName === 'P' || tagName === 'BLOCKQUOTE') {
+          extracted.push({ type: 'paragraph', text });
+        }
+      });
+      
+      // Segment long paragraphs for better readability
+      const finalBlocks: ContentBlock[] = [];
+      
+      extracted.forEach(item => {
+        if (item.type === 'paragraph' && item.text.length > 150) {
+          const segments = segmentText(item.text);
+          segments.forEach(seg => {
+            finalBlocks.push({ type: 'paragraph', text: seg });
+          });
+        } else {
+          finalBlocks.push(item);
+        }
+      });
+      
+      // Remove duplicates
+      const uniqueBlocks = finalBlocks.filter((block, index, self) => 
+        index === self.findIndex(b => b.text === block.text)
+      );
+      
+      // Update state
+      if (uniqueBlocks.length > 0) {
+        setBlocks(uniqueBlocks);
+        setSelectedIndex(0);
+        setAnnouncement(`Extracted ${uniqueBlocks.length} readable blocks from this page.`);
+      } else {
+        // Fallback: show message if no content found
+        setBlocks([
+          { type: 'heading', text: 'No readable content found' },
+          { type: 'paragraph', text: 'This page may not have standard content structure. Try navigating to a different page with article or blog content.' }
+        ]);
+        setAnnouncement('No readable content found on this page.');
+      }
+      
+    } catch (error) {
+      console.error('Content extraction error:', error);
+      setBlocks([
+        { type: 'heading', text: 'Extraction Error' },
+        { type: 'paragraph', text: 'Unable to extract content from this page. The page structure may not be compatible.' }
+      ]);
+      setAnnouncement('Error extracting content from page.');
+    }
   }
 
   // Initialize page and extract content
@@ -115,7 +300,7 @@ export default function BlindReader() {
               <div
                 key={i}
                 id={`block-${i}`}
-                className={`p-6 rounded-xl text-xl transition-all duration-300 ${
+                className={`p-6 rounded-xl transition-all duration-300 ${
                   i === selectedIndex
                     ? 'bg-blue-700 border-4 border-blue-400 shadow-lg scale-105'
                     : 'bg-gray-800 border-2 border-gray-600'
@@ -123,7 +308,17 @@ export default function BlindReader() {
               >
                 <div className="flex items-start gap-3">
                   <span className="text-3xl font-bold text-blue-300">#{i + 1}</span>
-                  <p className="flex-1 leading-relaxed">{block}</p>
+                  <div className="flex-1">
+                    {block.type === 'heading' && (
+                      <h3 className="text-2xl font-bold text-yellow-300 leading-relaxed">{block.text}</h3>
+                    )}
+                    {block.type === 'paragraph' && (
+                      <p className="text-xl leading-relaxed">{block.text}</p>
+                    )}
+                    {block.type === 'list' && (
+                      <p className="text-xl leading-relaxed text-green-300">{block.text}</p>
+                    )}
+                  </div>
                 </div>
               </div>
             ))}
