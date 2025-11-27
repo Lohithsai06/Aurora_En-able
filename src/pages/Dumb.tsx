@@ -33,6 +33,12 @@ export default function Dumb() {
   const [aiLoading, setAiLoading] = useState<boolean>(false);
   const [aiSuggestions, setAiSuggestions] = useState<string[]>([]);
   const [contextHistory, setContextHistory] = useState<string[]>([]);
+  const [voiceEnabled, setVoiceEnabled] = useState<boolean>(true);
+  const [speechRate, setSpeechRate] = useState<number>(0.9);
+  const [speechPitch, setSpeechPitch] = useState<number>(1);
+  const [isSpeaking, setIsSpeaking] = useState<boolean>(false);
+  const [availableVoices, setAvailableVoices] = useState<SpeechSynthesisVoice[]>([]);
+  const [selectedVoice, setSelectedVoice] = useState<SpeechSynthesisVoice | null>(null);
   
   const webcamRef = useRef<Webcam>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -41,20 +47,107 @@ export default function Dumb() {
   const gestureBufferRef = useRef<string[]>([]);
   const lastGestureRef = useRef<string>('');
   const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
+
+  // Initialize available voices
+  useEffect(() => {
+    const loadVoices = () => {
+      const voices = window.speechSynthesis.getVoices();
+      setAvailableVoices(voices);
+      
+      // Set default voice (prefer English)
+      if (voices.length > 0 && !selectedVoice) {
+        const englishVoice = voices.find(voice => voice.lang.startsWith('en')) || voices[0];
+        setSelectedVoice(englishVoice);
+      }
+    };
+
+    loadVoices();
+    
+    // Chrome needs this event listener
+    if (window.speechSynthesis.onvoiceschanged !== undefined) {
+      window.speechSynthesis.onvoiceschanged = loadVoices;
+    }
+
+    return () => {
+      window.speechSynthesis.cancel();
+    };
+  }, []);
+
+  // Auto-speak on output change
+  useEffect(() => {
+    if (outputText && 
+        outputText !== 'Your message will appear here' && 
+        voiceEnabled && 
+        !aiLoading &&
+        detectedGesture) {
+      speakText(outputText);
+    }
+  }, [outputText, voiceEnabled, aiLoading]);
+
+  // Speech synthesis function
+  const speakText = (text: string) => {
+    if (!text || text === 'Your message will appear here') return;
+
+    try {
+      // Cancel any ongoing speech
+      window.speechSynthesis.cancel();
+      
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = "en-US";
+      utterance.rate = speechRate;
+      utterance.pitch = speechPitch;
+      utterance.volume = 1;
+      
+      if (selectedVoice) {
+        utterance.voice = selectedVoice;
+      }
+
+      utterance.onstart = () => {
+        setIsSpeaking(true);
+      };
+
+      utterance.onend = () => {
+        setIsSpeaking(false);
+      };
+
+      utterance.onerror = (event) => {
+        console.error('Speech synthesis error:', event);
+        setIsSpeaking(false);
+      };
+
+      utteranceRef.current = utterance;
+      window.speechSynthesis.speak(utterance);
+    } catch (error) {
+      console.error('Speech synthesis failed:', error);
+      setIsSpeaking(false);
+    }
+  };
 
   const handleSpeak = () => {
     if (!outputText || outputText === 'Your message will appear here') return;
-    
+    speakText(outputText);
+  };
+
+  const handleStopSpeech = () => {
     window.speechSynthesis.cancel();
-    const utterance = new SpeechSynthesisUtterance(outputText);
-    utterance.rate = 0.9;
-    utterance.pitch = 1;
-    utterance.volume = 1;
-    window.speechSynthesis.speak(utterance);
+    setIsSpeaking(false);
+  };
+
+  const toggleVoice = () => {
+    setVoiceEnabled(!voiceEnabled);
+    if (!voiceEnabled === false) {
+      window.speechSynthesis.cancel();
+      setIsSpeaking(false);
+    }
   };
 
   const handleClear = () => {
+    window.speechSynthesis.cancel();
+    setIsSpeaking(false);
     setOutputText('Your message will appear here');
+    setDetectedGesture(null);
+    setAiSuggestions([]);
   };
 
   const handleCopy = async () => {
@@ -516,7 +609,7 @@ Format: Return only the 3 sentences separated by newlines, no numbering or label
         </div>
 
         {/* Output Display Panel */}
-        <div className={`output-panel ${gestureConfirmed ? 'gesture-detected' : ''} ${aiLoading ? 'ai-loading' : ''}`}>
+        <div className={`output-panel ${gestureConfirmed ? 'gesture-detected' : ''} ${aiLoading ? 'ai-loading' : ''} ${isSpeaking ? 'speaking' : ''}`}>
           <div 
             className="output-text"
             aria-live="polite"
@@ -528,7 +621,15 @@ Format: Return only the 3 sentences separated by newlines, no numbering or label
                 <span>Thinking...</span>
               </div>
             ) : (
-              outputText
+              <>
+                {outputText}
+                {isSpeaking && (
+                  <div className="speaking-animation">
+                    <span className="pulse-icon">🔊</span>
+                    <span className="speaking-text">Speaking...</span>
+                  </div>
+                )}
+              </>
             )}
           </div>
           
@@ -609,6 +710,126 @@ Format: Return only the 3 sentences separated by newlines, no numbering or label
             </div>
           </div>
         )}
+
+        {/* Voice Controls Panel */}
+        <section className="voice-controls-panel" aria-label="Voice controls">
+          <h3 className="voice-controls-title">
+            {isSpeaking && <span className="speaking-indicator">🔊 </span>}
+            Voice Controls
+          </h3>
+
+          <div className="voice-controls-grid">
+            {/* Mute Toggle */}
+            <div className="control-group">
+              <label className="control-label">Voice Output</label>
+              <button
+                className={`voice-toggle-btn ${voiceEnabled ? 'enabled' : 'muted'}`}
+                onClick={toggleVoice}
+                aria-label={voiceEnabled ? 'Mute voice' : 'Enable voice'}
+              >
+                <span className="voice-icon">{voiceEnabled ? '🔊' : '🔇'}</span>
+                <span>{voiceEnabled ? 'Enabled' : 'Muted'}</span>
+              </button>
+            </div>
+
+            {/* Replay & Stop Buttons */}
+            <div className="control-group">
+              <label className="control-label">Playback</label>
+              <div className="button-group-inline">
+                <button
+                  className="control-btn-small replay-btn focus-ring"
+                  onClick={handleSpeak}
+                  disabled={!outputText || outputText === 'Your message will appear here'}
+                  aria-label="Replay voice"
+                >
+                  <span>🔊 Replay</span>
+                </button>
+                <button
+                  className="control-btn-small stop-btn focus-ring"
+                  onClick={handleStopSpeech}
+                  disabled={!isSpeaking}
+                  aria-label="Stop voice"
+                >
+                  <span>⏹️ Stop</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Speed Slider */}
+            <div className="control-group">
+              <label className="control-label" htmlFor="speech-rate">
+                Speed: {speechRate.toFixed(1)}x
+              </label>
+              <input
+                id="speech-rate"
+                type="range"
+                min="0.5"
+                max="2"
+                step="0.1"
+                value={speechRate}
+                onChange={(e) => setSpeechRate(parseFloat(e.target.value))}
+                className="slider focus-ring"
+                aria-label="Speech rate"
+              />
+              <div className="slider-labels">
+                <span>0.5x</span>
+                <span>2x</span>
+              </div>
+            </div>
+
+            {/* Pitch Slider */}
+            <div className="control-group">
+              <label className="control-label" htmlFor="speech-pitch">
+                Pitch: {speechPitch.toFixed(1)}
+              </label>
+              <input
+                id="speech-pitch"
+                type="range"
+                min="0"
+                max="2"
+                step="0.1"
+                value={speechPitch}
+                onChange={(e) => setSpeechPitch(parseFloat(e.target.value))}
+                className="slider focus-ring"
+                aria-label="Speech pitch"
+              />
+              <div className="slider-labels">
+                <span>Low</span>
+                <span>High</span>
+              </div>
+            </div>
+
+            {/* Voice Selection */}
+            <div className="control-group full-width">
+              <label className="control-label" htmlFor="voice-select">
+                Voice Type
+              </label>
+              <select
+                id="voice-select"
+                className="voice-select focus-ring"
+                value={selectedVoice?.name || ''}
+                onChange={(e) => {
+                  const voice = availableVoices.find(v => v.name === e.target.value);
+                  setSelectedVoice(voice || null);
+                }}
+                aria-label="Select voice type"
+              >
+                {availableVoices.map((voice, index) => (
+                  <option key={index} value={voice.name}>
+                    {voice.name} ({voice.lang})
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          {/* Voice Status Message */}
+          {!window.speechSynthesis && (
+            <div className="voice-error" role="alert">
+              ⚠️ Voice output unavailable in this browser
+            </div>
+          )}
+        </section>
 
         {/* Webcam Section - Only visible in Gesture Mode */}
         {currentMode === 'gesture' && (
