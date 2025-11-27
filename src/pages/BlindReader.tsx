@@ -20,18 +20,53 @@ export default function BlindReader() {
   const [summaryText, setSummaryText] = useState('');
   const [isGeneratingSummary, setIsGeneratingSummary] = useState(false);
 
+  // Settings panel
+  const [showSettings, setShowSettings] = useState(false);
+  
+  // TTS settings
+  const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
+  const [selectedVoice, setSelectedVoice] = useState<string>('');
+  const [speed, setSpeed] = useState(0.9);
+  const [volume, setVolume] = useState(1.0);
+
+  // Theme settings
+  const [theme, setTheme] = useState<'dark' | 'light' | 'highContrast'>('dark');
+  const [dyslexiaFont, setDyslexiaFont] = useState(false);
+
   // Announce helper for aria-live
   const announce = (msg: string) => {
     setAnnouncement(msg);
   };
 
-  // TTS utility functions
+  // Load available voices
+  useEffect(() => {
+    const loadVoices = () => {
+      const availableVoices = window.speechSynthesis.getVoices();
+      setVoices(availableVoices);
+      if (availableVoices.length > 0 && !selectedVoice) {
+        setSelectedVoice(availableVoices[0].name);
+      }
+    };
+    
+    loadVoices();
+    window.speechSynthesis.onvoiceschanged = loadVoices;
+  }, []);
+
+  // TTS utility functions with settings applied
   const speak = (text: string) => {
     window.speechSynthesis.cancel();
     const msg = new SpeechSynthesisUtterance(text);
     msg.lang = 'en-US';
-    msg.rate = 0.9;
+    msg.rate = speed;
+    msg.volume = volume;
     msg.pitch = 1;
+    
+    // Apply selected voice if available
+    const voice = voices.find(v => v.name === selectedVoice);
+    if (voice) {
+      msg.voice = voice;
+    }
+    
     window.speechSynthesis.speak(msg);
   };
 
@@ -307,7 +342,7 @@ ${fullText}`;
     
     // Initial TTS announcement
     setTimeout(() => {
-      speak('Website Reader loaded. Press I for interactive mode, A for read-all mode, or M for AI summary mode. Use arrow keys to navigate, Enter to speak, Shift to stop, Control to replay, or Escape to go back.');
+      speak('Website Reader loaded. Press I for interactive mode, A for read-all mode, M for AI summary mode, or O to open settings. Use arrow keys to navigate, Enter to speak, Shift to stop, Control to replay, or Escape to go back.');
     }, 500);
 
     return () => {
@@ -334,6 +369,14 @@ ${fullText}`;
   // Keyboard navigation
   useEffect(() => {
     function handleKey(e: KeyboardEvent) {
+      // Settings toggle (O key)
+      if (e.key.toLowerCase() === 'o' && !e.ctrlKey && !e.shiftKey && !e.altKey) {
+        e.preventDefault();
+        setShowSettings(prev => !prev);
+        announce(showSettings ? 'Settings closed' : 'Settings opened');
+        return;
+      }
+
       // Mode selection shortcuts
       if (e.key.toLowerCase() === 'i' && !e.ctrlKey && !e.shiftKey) {
         e.preventDefault();
@@ -483,7 +526,11 @@ ${fullText}`;
   }, [selectedIndex]);
 
   return (
-    <div className="reader-page">
+    <div className={`reader-page ${
+      theme === 'light' ? 'theme-light' : 
+      theme === 'highContrast' ? 'theme-high-contrast' : 
+      'theme-dark'
+    } ${dyslexiaFont ? 'dyslexia-font' : ''}`}>
       {/* Animated Background */}
       <div className="reader-bg">
         <div className="reader-particle"></div>
@@ -497,6 +544,135 @@ ${fullText}`;
       <div aria-live="polite" className="sr-only">
         {announcement}
       </div>
+
+      {/* Settings Button */}
+      <button
+        onClick={() => setShowSettings(!showSettings)}
+        className="settings-button focus:ring-4 focus:ring-purple-500 focus:outline-none"
+        aria-label="Open settings"
+      >
+        ⚙️ Settings <kbd className="settings-kbd">O</kbd>
+      </button>
+
+      {/* Settings Modal */}
+      {showSettings && (
+        <div className="settings-modal">
+          <div className="settings-content">
+            <div className="settings-header">
+              <h2 className="settings-title">⚙️ Settings</h2>
+              <button
+                onClick={() => setShowSettings(false)}
+                className="settings-close focus:ring-4 focus:ring-red-500 focus:outline-none"
+                aria-label="Close settings"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="settings-body">
+              {/* TTS Settings */}
+              <div className="settings-section">
+                <h3 className="settings-section-title">🔊 Text-to-Speech</h3>
+                
+                <div className="settings-item">
+                  <label htmlFor="voice-select">Voice</label>
+                  <select
+                    id="voice-select"
+                    value={selectedVoice}
+                    onChange={(e) => {
+                      setSelectedVoice(e.target.value);
+                      announce('Voice changed');
+                    }}
+                    className="settings-select focus:ring-4 focus:ring-blue-500 focus:outline-none"
+                  >
+                    {voices.map((voice, i) => (
+                      <option key={i} value={voice.name}>
+                        {voice.name} ({voice.lang})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="settings-item">
+                  <label htmlFor="speed-slider">
+                    Speed: {speed.toFixed(1)}x
+                  </label>
+                  <input
+                    id="speed-slider"
+                    type="range"
+                    min="0.5"
+                    max="2.0"
+                    step="0.1"
+                    value={speed}
+                    onChange={(e) => {
+                      setSpeed(parseFloat(e.target.value));
+                      announce(`Speed set to ${e.target.value}`);
+                    }}
+                    className="settings-slider focus:ring-4 focus:ring-blue-500 focus:outline-none"
+                  />
+                </div>
+
+                <div className="settings-item">
+                  <label htmlFor="volume-slider">
+                    Volume: {Math.round(volume * 100)}%
+                  </label>
+                  <input
+                    id="volume-slider"
+                    type="range"
+                    min="0"
+                    max="1"
+                    step="0.1"
+                    value={volume}
+                    onChange={(e) => {
+                      setVolume(parseFloat(e.target.value));
+                      announce(`Volume set to ${Math.round(parseFloat(e.target.value) * 100)}%`);
+                    }}
+                    className="settings-slider focus:ring-4 focus:ring-blue-500 focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              {/* Display Settings */}
+              <div className="settings-section">
+                <h3 className="settings-section-title">🎨 Display</h3>
+                
+                <div className="settings-item">
+                  <label htmlFor="theme-select">Theme</label>
+                  <select
+                    id="theme-select"
+                    value={theme}
+                    onChange={(e) => {
+                      setTheme(e.target.value as 'dark' | 'light' | 'highContrast');
+                      announce(`Theme changed to ${e.target.value}`);
+                    }}
+                    className="settings-select focus:ring-4 focus:ring-blue-500 focus:outline-none"
+                  >
+                    <option value="dark">Dark Mode</option>
+                    <option value="light">Light Mode</option>
+                    <option value="highContrast">High Contrast</option>
+                  </select>
+                </div>
+
+                <div className="settings-item">
+                  <label htmlFor="dyslexia-toggle" className="settings-checkbox-label">
+                    <input
+                      id="dyslexia-toggle"
+                      type="checkbox"
+                      checked={dyslexiaFont}
+                      onChange={(e) => {
+                        setDyslexiaFont(e.target.checked);
+                        announce(e.target.checked ? 'Dyslexia font enabled' : 'Dyslexia font disabled');
+                      }}
+                      className="settings-checkbox focus:ring-4 focus:ring-blue-500 focus:outline-none"
+                    />
+                    <span>Dyslexia-Friendly Font</span>
+                  </label>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className={`reader-container ${isVisible ? 'visible' : ''}`}>
         
@@ -518,7 +694,7 @@ ${fullText}`;
           <div className="mode-grid">
             <button
               onClick={() => setMode('interactive')}
-              className={`mode-card ${mode === 'interactive' ? 'mode-card-active' : ''}`}
+              className={`mode-card ${mode === 'interactive' ? 'mode-card-active' : ''} focus:ring-4 focus:ring-blue-500 focus:outline-none`}
               aria-label="Interactive mode - navigate block by block"
             >
               <h3>Interactive</h3>
@@ -527,7 +703,7 @@ ${fullText}`;
             </button>
             <button
               onClick={() => setMode('continuous')}
-              className={`mode-card ${mode === 'continuous' ? 'mode-card-active' : ''}`}
+              className={`mode-card ${mode === 'continuous' ? 'mode-card-active' : ''} focus:ring-4 focus:ring-blue-500 focus:outline-none`}
               aria-label="Continuous mode - read all blocks automatically"
             >
               <h3>Continuous</h3>
@@ -536,7 +712,7 @@ ${fullText}`;
             </button>
             <button
               onClick={() => setMode('summary')}
-              className={`mode-card ${mode === 'summary' ? 'mode-card-active' : ''}`}
+              className={`mode-card ${mode === 'summary' ? 'mode-card-active' : ''} focus:ring-4 focus:ring-blue-500 focus:outline-none`}
               aria-label="AI Summary mode - get intelligent overview"
             >
               <h3>AI Summary</h3>
@@ -596,7 +772,7 @@ ${fullText}`;
 
         {/* Keyboard Controls Description */}
         <div className="controls-section">
-          <h2 className="controls-title">⌨️ Keyboard Controls</h2>
+          <h2 className="controls-title">🔥 Keyboard Shortcuts</h2>
           <div className="controls-grid">
             <div className="control-item">
               <div className="control-key blue">↑ ↓</div>
@@ -615,12 +791,24 @@ ${fullText}`;
               <p className="control-label">Replay</p>
             </div>
             <div className="control-item">
+              <div className="control-key blue">I</div>
+              <p className="control-label">Interactive mode</p>
+            </div>
+            <div className="control-item">
               <div className="control-key yellow">A</div>
               <p className="control-label">Read all mode</p>
             </div>
             <div className="control-item">
               <div className="control-key pink">M</div>
               <p className="control-label">AI summary</p>
+            </div>
+            <div className="control-item">
+              <div className="control-key purple">O</div>
+              <p className="control-label">Open settings</p>
+            </div>
+            <div className="control-item">
+              <div className="control-key red">ESC</div>
+              <p className="control-label">Back to menu</p>
             </div>
           </div>
         </div>

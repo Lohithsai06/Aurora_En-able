@@ -9,6 +9,235 @@
   animation: fadeIn 0.5s ease-out;
 }
 
+/* Theme Variations */
+.reader-page.theme-light {
+  background: linear-gradient(135deg, #f5f5f5 0%, #e0e0e0 50%, #d0d0d0 100%);
+  color: #000000;
+}
+
+.reader-page.theme-light .content-block,
+.reader-page.theme-light .mode-card,
+.reader-page.theme-light .summary-section,
+.reader-page.theme-light .blocks-section,
+.reader-page.theme-light .controls-section {
+  background: rgba(255, 255, 255, 0.9);
+  color: #000000;
+  border-color: rgba(0, 0, 0, 0.3);
+}
+
+.reader-page.theme-high-contrast {
+  background: #000000;
+  color: #ffff00;
+}
+
+.reader-page.theme-high-contrast .content-block,
+.reader-page.theme-high-contrast .mode-card,
+.reader-page.theme-high-contrast .summary-section,
+.reader-page.theme-high-contrast .blocks-section,
+.reader-page.theme-high-contrast .controls-section {
+  background: #000000;
+  color: #ffff00;
+  border: 3px solid #ffff00;
+}
+
+.reader-page.theme-high-contrast .block-heading {
+  color: #ffff00;
+}
+
+/* Dyslexia Font */
+.reader-page.dyslexia-font {
+  font-family: 'Comic Sans MS', 'OpenDyslexic', 'Arial', sans-serif;
+}
+
+/* Settings Button */
+.settings-button {
+  position: fixed;
+  top: 2rem;
+  right: 2rem;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem 1.5rem;
+  background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+  border: 2px solid rgba(139, 92, 246, 0.8);
+  border-radius: 1rem;
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: white;
+  cursor: pointer;
+  box-shadow: 0 8px 30px rgba(139, 92, 246, 0.4);
+  transition: all 0.3s ease;
+}
+
+.settings-button:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 12px 40px rgba(139, 92, 246, 0.6);
+}
+
+.settings-kbd {
+  padding: 0.375rem 0.625rem;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+}
+
+/* Settings Modal */
+.settings-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.8);
+  backdrop-filter: blur(10px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 200;
+  animation: fadeIn 0.3s ease-out;
+}
+
+.settings-content {
+  background: linear-gradient(135deg, #1f2937 0%, #111827 100%);
+  border: 3px solid rgba(139, 92, 246, 0.6);
+  border-radius: 1.5rem;
+  padding: 0;
+  max-width: 600px;
+  width: 90%;
+  max-height: 80vh;
+  overflow-y: auto;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+}
+
+.settings-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 2rem;
+  border-bottom: 2px solid rgba(139, 92, 246, 0.3);
+}
+
+.settings-title {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #f0f0f0;
+  margin: 0;
+}
+
+.settings-close {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+  border: none;
+  border-radius: 0.5rem;
+  font-size: 1.5rem;
+  color: white;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.settings-close:hover {
+  transform: scale(1.1);
+  box-shadow: 0 5px 20px rgba(239, 68, 68, 0.5);
+}
+
+.settings-body {
+  padding: 2rem;
+}
+
+.settings-section {
+  margin-bottom: 2rem;
+}
+
+.settings-section-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #8b5cf6;
+  margin-bottom: 1.5rem;
+}
+
+.settings-item {
+  margin-bottom: 1.5rem;
+}
+
+.settings-item label {
+  display: block;
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #d1d5db;
+  margin-bottom: 0.5rem;
+}
+
+.settings-select {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  background: rgba(31, 41, 55, 0.8);
+  border: 2px solid rgba(139, 92, 246, 0.4);
+  border-radius: 0.5rem;
+  font-size: 1rem;
+  color: #f0f0f0;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.settings-select:hover {
+  border-color: rgba(139, 92, 246, 0.7);
+}
+
+.settings-slider {
+  width: 100%;
+  height: 8px;
+  background: rgba(139, 92, 246, 0.3);
+  border-radius: 4px;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+.settings-slider::-webkit-slider-thumb {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 24px;
+  height: 24px;
+  background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+  border-radius: 50%;
+  cursor: pointer;
+  box-shadow: 0 4px 10px rgba(139, 92, 246, 0.5);
+  transition: all 0.3s ease;
+}
+
+.settings-slider::-webkit-slider-thumb:hover {
+  transform: scale(1.2);
+}
+
+.settings-slider::-moz-range-thumb {
+  width: 24px;
+  height: 24px;
+  background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+  border-radius: 50%;
+  cursor: pointer;
+  box-shadow: 0 4px 10px rgba(139, 92, 246, 0.5);
+  border: none;
+}
+
+.settings-checkbox-label {
+  display: flex !important;
+  align-items: center;
+  gap: 0.75rem;
+  cursor: pointer;
+}
+
+.settings-checkbox {
+  width: 24px;
+  height: 24px;
+  cursor: pointer;
+  accent-color: #8b5cf6;
+}
+
 /* Animated Background */
 .reader-bg {
   position: absolute;
@@ -333,24 +562,24 @@
 }
 
 .content-block.selected {
-  background: linear-gradient(135deg, rgba(59, 130, 246, 0.3) 0%, rgba(37, 99, 235, 0.4) 100%);
-  border: 3px solid rgba(59, 130, 246, 0.8);
-  box-shadow: 0 15px 50px rgba(59, 130, 246, 0.5);
-  transform: scale(1.03);
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.4) 0%, rgba(37, 99, 235, 0.5) 100%);
+  border: 4px solid rgba(59, 130, 246, 1);
+  box-shadow: 0 20px 60px rgba(59, 130, 246, 0.7);
+  transform: scale(1.05);
 }
 
 .block-content {
   display: flex;
   align-items: flex-start;
-  gap: 1rem;
+  gap: 1.25rem;
 }
 
 .block-number {
-  font-size: 2rem;
+  font-size: 2.25rem;
   font-weight: 900;
   color: #60a5fa;
   line-height: 1;
-  min-width: 50px;
+  min-width: 60px;
 }
 
 .block-text-wrapper {
@@ -358,25 +587,25 @@
 }
 
 .block-heading {
-  font-size: 1.75rem;
+  font-size: 2rem;
   font-weight: 700;
   color: #fbbf24;
-  line-height: 1.4;
+  line-height: 1.5;
   margin: 0;
   text-shadow: 0 2px 10px rgba(251, 191, 36, 0.3);
 }
 
 .block-paragraph {
-  font-size: 1.25rem;
+  font-size: 1.375rem;
   color: #e5e7eb;
-  line-height: 1.6;
+  line-height: 1.8;
   margin: 0;
 }
 
 .block-list {
-  font-size: 1.25rem;
+  font-size: 1.375rem;
   color: #34d399;
-  line-height: 1.6;
+  line-height: 1.8;
   margin: 0;
 }
 
