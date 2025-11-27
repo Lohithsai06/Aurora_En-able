@@ -15,35 +15,39 @@ export default function Blind() {
       label: 'OCR Reader', 
       icon: <BookOpen size={32} />,
       description: 'Extract and read text from images',
-      action: () => speak('OCR Reader selected. This feature will read text from images.') 
+      route: '/blind/ocr'
     },
     { 
       label: 'Text-to-Speech', 
       icon: <Volume2 size={32} />,
       description: 'Convert any text to natural speech',
-      action: () => speak('Text to Speech selected. This feature will read any text on screen.') 
+      route: '/blind/tts'
     },
     { 
       label: 'Website Reader', 
       icon: <Globe size={32} />,
       description: 'Navigate and read web pages aloud',
-      action: () => speak('Website Reader selected. This feature will read web pages aloud.') 
+      route: '/blind/reader'
     },
     { 
       label: 'Back to Dashboard', 
       icon: <ArrowLeft size={32} />,
       description: 'Return to main dashboard',
-      action: () => navigate('/dashboard') 
+      route: '/dashboard'
     }
   ];
 
   const speak = (text: string) => {
-    window.speechSynthesis.cancel();
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.rate = 0.9;
-    utterance.pitch = 1;
-    utterance.volume = 1;
-    window.speechSynthesis.speak(utterance);
+    try {
+      window.speechSynthesis.cancel();
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.rate = 0.9;
+      utterance.pitch = 1;
+      utterance.volume = 1;
+      window.speechSynthesis.speak(utterance);
+    } catch (error) {
+      console.log('Speech synthesis not available:', error);
+    }
   };
 
   const playNavigationSound = () => {
@@ -92,42 +96,49 @@ export default function Blind() {
     };
   }, []);
 
+  // Auto-scroll selected option into view
+  useEffect(() => {
+    const el = document.getElementById(`option-${selectedIndex}`);
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  }, [selectedIndex]);
+
+  // Voice feedback when selection changes
+  useEffect(() => {
+    if (isReady && selectedIndex >= 0) {
+      speak(`${options[selectedIndex].label}. ${options[selectedIndex].description}`);
+    }
+  }, [selectedIndex, isReady]);
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'ArrowDown') {
         e.preventDefault();
         playNavigationSound();
-        setSelectedIndex((prev) => {
-          const newIndex = (prev + 1) % options.length;
-          speak(options[newIndex].label + '. ' + options[newIndex].description);
-          return newIndex;
-        });
+        setSelectedIndex((prev) => (prev + 1) % options.length);
       } else if (e.key === 'ArrowUp') {
         e.preventDefault();
         playNavigationSound();
-        setSelectedIndex((prev) => {
-          const newIndex = (prev - 1 + options.length) % options.length;
-          speak(options[newIndex].label + '. ' + options[newIndex].description);
-          return newIndex;
-        });
+        setSelectedIndex((prev) => (prev - 1 + options.length) % options.length);
       } else if (e.key === 'Enter') {
         e.preventDefault();
         playSelectSound();
-        options[selectedIndex].action();
+        const route = options[selectedIndex].route;
+        setTimeout(() => navigate(route), 200);
       } else if (e.key >= '1' && e.key <= '4') {
         const index = parseInt(e.key) - 1;
         if (index < options.length) {
           e.preventDefault();
           playNavigationSound();
           setSelectedIndex(index);
-          speak(options[index].label + '. ' + options[index].description);
         }
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [selectedIndex]);
+  }, [selectedIndex, navigate, options]);
 
   return (
     <div className="blind-page">
@@ -150,16 +161,20 @@ export default function Blind() {
         </div>
 
         {/* Options Grid */}
-        <div className="blind-options">
+        <div className="blind-options overflow-y-auto max-h-screen focus:outline-none" tabIndex={-1}>
           {options.map((option, index) => (
             <button
               key={index}
+              id={`option-${index}`}
               onClick={() => {
                 playSelectSound();
-                option.action();
+                setSelectedIndex(index);
+                setTimeout(() => navigate(option.route), 200);
               }}
               className={`blind-option-card ${selectedIndex === index ? 'selected' : ''}`}
-              aria-label={`${option.label}. ${option.description}`}
+              aria-label={`Option ${index + 1}: ${option.label}. ${option.description}`}
+              role="button"
+              tabIndex={0}
             >
               <div className="option-number">{index + 1}</div>
               
