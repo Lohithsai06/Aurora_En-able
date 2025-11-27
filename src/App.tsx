@@ -5,7 +5,7 @@ import Login from './pages/Login';
 import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
 import Blind from './pages/Blind';
-import BlindOCR from './pages/BlindOCR';
+import BlindOCROffline from './pages/BlindOCROffline';
 import BlindTTS from './pages/BlindTTS';
 import Deaf from './pages/Deaf';
 import Dumb from './pages/Dumb';
@@ -22,7 +22,7 @@ export default function App() {
           <Route path="/register" element={<Register />} />
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/blind" element={<Blind />} />
-          <Route path="/blind/ocr" element={<BlindOCR />} />
+          <Route path="/blind/ocr" element={<BlindOCROffline />} />
           <Route path="/blind/tts" element={<BlindTTS />} />
           <Route path="/deaf" element={<Deaf />} />
           <Route path="/dumb" element={<Dumb />} />
