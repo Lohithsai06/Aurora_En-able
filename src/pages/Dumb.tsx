@@ -39,6 +39,8 @@ export default function Dumb() {
   const [isSpeaking, setIsSpeaking] = useState<boolean>(false);
   const [availableVoices, setAvailableVoices] = useState<SpeechSynthesisVoice[]>([]);
   const [selectedVoice, setSelectedVoice] = useState<SpeechSynthesisVoice | null>(null);
+  const [activePhrase, setActivePhrase] = useState<string | null>(null);
+  const [sentenceBuilder, setSentenceBuilder] = useState<string[]>([]);
   
   const webcamRef = useRef<Webcam>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -148,6 +150,96 @@ export default function Dumb() {
     setOutputText('Your message will appear here');
     setDetectedGesture(null);
     setAiSuggestions([]);
+    setActivePhrase(null);
+    setSentenceBuilder([]);
+  };
+
+  // Handle Quick Phrase Click
+  const handlePhraseClick = async (phrase: string) => {
+    setActivePhrase(phrase);
+    
+    // Add to history
+    setHistory(prev => {
+      const newHistory = [phrase, ...prev];
+      return newHistory.slice(0, 10);
+    });
+
+    // Process with AI if enabled
+    if (aiMode) {
+      setAiLoading(true);
+      const aiResponse = await getGeminiResponse(phrase);
+      setOutputText(aiResponse);
+      setAiLoading(false);
+      
+      // Get suggestions
+      await getAiSuggestions(phrase);
+    } else {
+      setOutputText(phrase);
+    }
+
+    // Visual feedback
+    setTimeout(() => setActivePhrase(null), 1000);
+  };
+
+  // Handle Symbol Click
+  const handleSymbolClick = async (symbol: string, text: string) => {
+    const fullText = `${symbol} ${text}`;
+    setActivePhrase(fullText);
+    
+    // Add to history
+    setHistory(prev => {
+      const newHistory = [text, ...prev];
+      return newHistory.slice(0, 10);
+    });
+
+    // Process with AI if enabled
+    if (aiMode) {
+      setAiLoading(true);
+      const aiResponse = await getGeminiResponse(text);
+      setOutputText(aiResponse);
+      setAiLoading(false);
+    } else {
+      setOutputText(fullText);
+    }
+
+    // Visual feedback
+    setTimeout(() => setActivePhrase(null), 1000);
+  };
+
+  // Sentence Builder Functions
+  const addWordToSentence = (word: string) => {
+    setSentenceBuilder(prev => [...prev, word]);
+  };
+
+  const clearSentence = () => {
+    setSentenceBuilder([]);
+  };
+
+  const speakBuiltSentence = async () => {
+    if (sentenceBuilder.length === 0) return;
+    
+    const sentence = sentenceBuilder.join(' ');
+    
+    // Add to history
+    setHistory(prev => {
+      const newHistory = [sentence, ...prev];
+      return newHistory.slice(0, 10);
+    });
+
+    // Process with AI if enabled
+    if (aiMode) {
+      setAiLoading(true);
+      const aiResponse = await getGeminiResponse(sentence);
+      setOutputText(aiResponse);
+      setAiLoading(false);
+      
+      await getAiSuggestions(sentence);
+    } else {
+      setOutputText(sentence);
+    }
+
+    // Clear builder after speaking
+    setSentenceBuilder([]);
   };
 
   const handleCopy = async () => {
@@ -709,6 +801,118 @@ Format: Return only the 3 sentences separated by newlines, no numbering or label
               ))}
             </div>
           </div>
+        )}
+
+        {/* Type Mode - Quick Phrases & Sentence Builder */}
+        {currentMode === 'type' && (
+          <div className="type-mode-section">
+            {/* Quick Phrase Communication Board */}
+            <section className="quick-phrases-section" aria-label="Quick communication phrases">
+              <h3 className="section-heading">Quick Communication Phrases</h3>
+              <div className="phrase-grid">
+                {[
+                  "Hello",
+                  "I need help",
+                  "Please wait",
+                  "I am in pain",
+                  "Thank you",
+                  "Call my family",
+                  "I am hungry",
+                  "I need water"
+                ].map((phrase, index) => (
+                  <button
+                    key={index}
+                    className={`phrase-button focus-ring ${activePhrase === phrase ? 'active-phrase' : ''}`}
+                    onClick={() => handlePhraseClick(phrase)}
+                    aria-label={`Say: ${phrase}`}
+                  >
+                    {phrase}
+                  </button>
+                ))}
+              </div>
+            </section>
+
+            {/* Sentence Builder Mode */}
+            <section className="sentence-builder-section" aria-label="Sentence builder">
+              <h3 className="section-heading">Sentence Builder</h3>
+              
+              <div className="builder-display">
+                <div className="built-sentence">
+                  {sentenceBuilder.length > 0 ? sentenceBuilder.join(' ') : 'Click words to build a sentence'}
+                </div>
+              </div>
+
+              <div className="builder-words">
+                {['I', 'Need', 'Want', 'Help', 'Water', 'Food', 'Please', 'Now', 'Later', 'Yes', 'No'].map((word, index) => (
+                  <button
+                    key={index}
+                    className="word-button focus-ring"
+                    onClick={() => addWordToSentence(word)}
+                    aria-label={`Add word: ${word}`}
+                  >
+                    {word}
+                  </button>
+                ))}
+              </div>
+
+              <div className="builder-controls">
+                <button
+                  className="control-btn speak-sentence-btn focus-ring"
+                  onClick={speakBuiltSentence}
+                  disabled={sentenceBuilder.length === 0}
+                  aria-label="Speak built sentence"
+                >
+                  <span>▶ Speak Sentence</span>
+                </button>
+                <button
+                  className="control-btn clear-sentence-btn focus-ring"
+                  onClick={clearSentence}
+                  disabled={sentenceBuilder.length === 0}
+                  aria-label="Clear sentence"
+                >
+                  <span>🗑 Clear</span>
+                </button>
+              </div>
+            </section>
+          </div>
+        )}
+
+        {/* Symbol Mode - Icon Communication */}
+        {currentMode === 'symbol' && (
+          <section className="symbol-mode-section" aria-label="Symbol communication board">
+            <h3 className="section-heading">Symbol Communication Board</h3>
+            <div className="symbol-grid">
+              {[
+                { emoji: '🍔', text: 'Food' },
+                { emoji: '💧', text: 'Water' },
+                { emoji: '🚻', text: 'Toilet' },
+                { emoji: '🛏', text: 'Rest' },
+                { emoji: '🚨', text: 'Emergency' },
+                { emoji: '🏠', text: 'Home' },
+                { emoji: '🤕', text: 'Pain' },
+                { emoji: '📞', text: 'Call' },
+                { emoji: '👨‍⚕️', text: 'Doctor' },
+                { emoji: '💊', text: 'Medicine' },
+                { emoji: '🌡️', text: 'Temperature' },
+                { emoji: '😊', text: 'Happy' },
+                { emoji: '😢', text: 'Sad' },
+                { emoji: '😴', text: 'Tired' },
+                { emoji: '❤️', text: 'Love' },
+                { emoji: '👍', text: 'Yes' }
+              ].map((item, index) => (
+                <button
+                  key={index}
+                  className={`symbol-tile focus-ring ${activePhrase === `${item.emoji} ${item.text}` ? 'active-phrase' : ''}`}
+                  onClick={() => handleSymbolClick(item.emoji, item.text)}
+                  aria-label={item.text}
+                  title={item.text}
+                >
+                  <span className="symbol-emoji">{item.emoji}</span>
+                  <span className="symbol-text">{item.text}</span>
+                </button>
+              ))}
+            </div>
+          </section>
         )}
 
         {/* Voice Controls Panel */}
