@@ -57,12 +57,13 @@
   min-height: 250px;
   display: flex;
   flex-direction: column;
-  justify-content: center;
+  justify-content: flex-start;
   align-items: center;
   background: white;
   border-radius: 12px;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  padding: 2rem;
+  padding: 1.5rem;
+  padding-top: 2rem;
   cursor: pointer;
   transition: all 0.3s ease;
   border: 2px solid transparent;
@@ -76,7 +77,7 @@
 
 .card-icon {
   font-size: 3rem;
-  margin-bottom: 1rem;
+  margin-bottom: 0.75rem;
   color: #3b82f6;
   display: flex;
   justify-content: center;

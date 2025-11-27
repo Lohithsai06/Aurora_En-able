@@ -32,28 +32,28 @@ export default function Dashboard() {
 
         <div className="dashboard-grid slide-up">
           <CardButton
-            title="Blind / Visual Impairment"
+            title="Visual Assistance"
             description="Screen readers, voice navigation, and audio feedback"
             icon={<Eye size={48} />}
             onClick={() => navigate('/blind')}
           />
 
           <CardButton
-            title="Deaf / Hard of Hearing"
+            title="Hearing Support"
             description="Visual indicators, captions, and sign language support"
             icon={<Ear size={48} />}
             onClick={() => navigate('/deaf')}
           />
 
           <CardButton
-            title="Non-verbal / Speech Impaired"
+            title="Speech Tools"
             description="Text-to-speech, communication boards, and alternative input"
             icon={<MessageSquare size={48} />}
             onClick={() => navigate('/dumb')}
           />
 
           <CardButton
-            title="ADHD / Focus Support"
+            title="Focus Aids"
             description="Task management, timers, and distraction-free tools"
             icon={<Brain size={48} />}
             onClick={() => navigate('/adhd')}

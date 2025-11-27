@@ -28,7 +28,7 @@ export default function CardButton({ title, description, icon, onClick }: CardBu
         {icon}
       </div>
       <h3 className="card-title" style={{ color: '#111' }}>{title}</h3>
-      <p className="card-description">{description}</p>
+      <p className="card-description" style={{ color: '#444' }}>{description}</p>
     </div>
   );
 }
