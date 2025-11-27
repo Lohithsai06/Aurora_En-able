@@ -1,12 +1,24 @@
 import { useState, useRef, useEffect } from 'react';
 import { Volume2, Trash2, Copy, Video, VideoOff } from 'lucide-react';
 import Webcam from 'react-webcam';
-import { Hands, Results } from '@mediapipe/hands';
+import { Hands, Results, NormalizedLandmark } from '@mediapipe/hands';
 import { drawConnectors, drawLandmarks } from '@mediapipe/drawing_utils';
 import { HAND_CONNECTIONS } from '@mediapipe/hands';
 import '../styles/dumb.css';
 
 type Mode = 'gesture' | 'type' | 'symbol';
+
+// Gesture Mapping
+const gestureMap = {
+  THUMBS_UP: "YES",
+  FIST: "NO",
+  PALM: "STOP",
+  OK_SIGN: "DONE",
+  POINT: "NEXT",
+  HELP: "HELP"
+} as const;
+
+type GestureType = keyof typeof gestureMap;
 
 export default function Dumb() {
   const [currentMode, setCurrentMode] = useState<Mode>('gesture');
@@ -14,11 +26,16 @@ export default function Dumb() {
   const [history, setHistory] = useState<string[]>([]);
   const [aiMode, setAiMode] = useState<boolean>(false);
   const [cameraActive, setCameraActive] = useState<boolean>(true);
+  const [detectedGesture, setDetectedGesture] = useState<string | null>(null);
+  const [gestureConfirmed, setGestureConfirmed] = useState<boolean>(false);
   
   const webcamRef = useRef<Webcam>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const handsRef = useRef<Hands | null>(null);
   const animationFrameRef = useRef<number | null>(null);
+  const gestureBufferRef = useRef<string[]>([]);
+  const lastGestureRef = useRef<string>('');
+  const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   const handleSpeak = () => {
     if (!outputText || outputText === 'Your message will appear here') return;
@@ -50,6 +67,152 @@ export default function Dumb() {
     setCameraActive(!cameraActive);
   };
 
+  // Helper: Calculate distance between two landmarks
+  const getDistance = (point1: NormalizedLandmark, point2: NormalizedLandmark): number => {
+    const dx = point1.x - point2.x;
+    const dy = point1.y - point2.y;
+    const dz = (point1.z || 0) - (point2.z || 0);
+    return Math.sqrt(dx * dx + dy * dy + dz * dz);
+  };
+
+  // Helper: Check if finger is extended
+  const isFingerExtended = (landmarks: NormalizedLandmark[], tipIdx: number, pipIdx: number): boolean => {
+    return landmarks[tipIdx].y < landmarks[pipIdx].y;
+  };
+
+  // Gesture Detection: Thumbs Up
+  const isThumbUp = (landmarks: NormalizedLandmark[]): boolean => {
+    const thumbTip = landmarks[4];
+    const thumbIP = landmarks[3];
+    const indexMCP = landmarks[5];
+    
+    // Thumb extended upward and other fingers curled
+    const thumbExtended = thumbTip.y < thumbIP.y;
+    const indexCurled = landmarks[8].y > landmarks[6].y;
+    const middleCurled = landmarks[12].y > landmarks[10].y;
+    const ringCurled = landmarks[16].y > landmarks[14].y;
+    const pinkyCurled = landmarks[20].y > landmarks[18].y;
+    
+    return thumbExtended && indexCurled && middleCurled && ringCurled && pinkyCurled;
+  };
+
+  // Gesture Detection: Fist
+  const isFist = (landmarks: NormalizedLandmark[]): boolean => {
+    // All fingers curled
+    const indexCurled = landmarks[8].y > landmarks[6].y;
+    const middleCurled = landmarks[12].y > landmarks[10].y;
+    const ringCurled = landmarks[16].y > landmarks[14].y;
+    const pinkyCurled = landmarks[20].y > landmarks[18].y;
+    const thumbCurled = landmarks[4].x > landmarks[3].x;
+    
+    return indexCurled && middleCurled && ringCurled && pinkyCurled && thumbCurled;
+  };
+
+  // Gesture Detection: Open Palm
+  const isPalm = (landmarks: NormalizedLandmark[]): boolean => {
+    // All fingers extended
+    const indexExtended = isFingerExtended(landmarks, 8, 6);
+    const middleExtended = isFingerExtended(landmarks, 12, 10);
+    const ringExtended = isFingerExtended(landmarks, 16, 14);
+    const pinkyExtended = isFingerExtended(landmarks, 20, 18);
+    
+    return indexExtended && middleExtended && ringExtended && pinkyExtended;
+  };
+
+  // Gesture Detection: OK Sign
+  const isOkSign = (landmarks: NormalizedLandmark[]): boolean => {
+    const thumbTip = landmarks[4];
+    const indexTip = landmarks[8];
+    const middleExtended = isFingerExtended(landmarks, 12, 10);
+    const ringExtended = isFingerExtended(landmarks, 16, 14);
+    const pinkyExtended = isFingerExtended(landmarks, 20, 18);
+    
+    // Thumb and index touching, other fingers extended
+    const distance = getDistance(thumbTip, indexTip);
+    const touching = distance < 0.05;
+    
+    return touching && middleExtended && ringExtended && pinkyExtended;
+  };
+
+  // Gesture Detection: Pointing
+  const isPointing = (landmarks: NormalizedLandmark[]): boolean => {
+    // Only index finger extended
+    const indexExtended = isFingerExtended(landmarks, 8, 6);
+    const middleCurled = landmarks[12].y > landmarks[10].y;
+    const ringCurled = landmarks[16].y > landmarks[14].y;
+    const pinkyCurled = landmarks[20].y > landmarks[18].y;
+    
+    return indexExtended && middleCurled && ringCurled && pinkyCurled;
+  };
+
+  // Gesture Detection: Help (rapid palm to fist)
+  const isHelpGesture = (landmarks: NormalizedLandmark[]): boolean => {
+    // This would require tracking state changes over time
+    // For now, we'll use a specific hand position as help
+    const wrist = landmarks[0];
+    const middleMCP = landmarks[9];
+    
+    // Hand raised high with all fingers partially curled
+    const handRaised = wrist.y < 0.3;
+    const partialCurl = landmarks[8].y > landmarks[6].y && landmarks[8].y < landmarks[5].y;
+    
+    return handRaised && partialCurl;
+  };
+
+  // Core Gesture Detection Function
+  const detectGesture = (landmarks: NormalizedLandmark[]): string | null => {
+    if (!landmarks || landmarks.length !== 21) return null;
+    
+    if (isThumbUp(landmarks)) return gestureMap.THUMBS_UP;
+    if (isOkSign(landmarks)) return gestureMap.OK_SIGN;
+    if (isPointing(landmarks)) return gestureMap.POINT;
+    if (isFist(landmarks)) return gestureMap.FIST;
+    if (isPalm(landmarks)) return gestureMap.PALM;
+    if (isHelpGesture(landmarks)) return gestureMap.HELP;
+    
+    return null;
+  };
+
+  // Update output with stability check
+  const updateGestureOutput = (gesture: string) => {
+    // Add to buffer
+    gestureBufferRef.current.push(gesture);
+    
+    // Keep only last 3 frames
+    if (gestureBufferRef.current.length > 3) {
+      gestureBufferRef.current.shift();
+    }
+    
+    // Check if gesture is stable (appears in at least 3 frames)
+    if (gestureBufferRef.current.length === 3) {
+      const allSame = gestureBufferRef.current.every(g => g === gesture);
+      
+      if (allSame && gesture !== lastGestureRef.current) {
+        // Clear any pending debounce
+        if (debounceTimerRef.current) {
+          clearTimeout(debounceTimerRef.current);
+        }
+        
+        // Debounce gesture update
+        debounceTimerRef.current = setTimeout(() => {
+          setOutputText(gesture);
+          setDetectedGesture(gesture);
+          setGestureConfirmed(true);
+          lastGestureRef.current = gesture;
+          
+          // Add to history (limit to 5)
+          setHistory(prev => {
+            const newHistory = [gesture, ...prev];
+            return newHistory.slice(0, 5);
+          });
+          
+          // Reset confirmation animation after 500ms
+          setTimeout(() => setGestureConfirmed(false), 500);
+        }, 300);
+      }
+    }
+  };
+
   // Initialize MediaPipe Hands
   useEffect(() => {
     if (currentMode !== 'gesture') return;
@@ -76,6 +239,9 @@ export default function Dumb() {
       }
       if (animationFrameRef.current) {
         cancelAnimationFrame(animationFrameRef.current);
+      }
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
       }
     };
   }, [currentMode]);
@@ -139,7 +305,20 @@ export default function Dumb() {
           lineWidth: 2,
           radius: 5,
         });
+        
+        // Detect gesture from landmarks
+        const gesture = detectGesture(landmarks);
+        if (gesture) {
+          updateGestureOutput(gesture);
+        } else {
+          // Clear buffer if no gesture detected
+          gestureBufferRef.current = [];
+        }
       }
+    } else {
+      // No hand detected, clear buffer
+      gestureBufferRef.current = [];
+      setDetectedGesture(null);
     }
 
     ctx.restore();
@@ -189,10 +368,20 @@ export default function Dumb() {
         </div>
 
         {/* Output Display Panel */}
-        <div className="output-panel">
-          <div className="output-text">
+        <div className={`output-panel ${gestureConfirmed ? 'gesture-detected' : ''}`}>
+          <div 
+            className="output-text"
+            aria-live="polite"
+            aria-atomic="true"
+          >
             {outputText}
           </div>
+          
+          {detectedGesture && (
+            <div className="gesture-label">
+              Gesture Detected: {detectedGesture}
+            </div>
+          )}
           
           <div className="output-controls">
             <button 
@@ -287,6 +476,21 @@ export default function Dumb() {
                 )}
               </button>
             </div>
+
+            {/* Gesture History */}
+            {history.length > 0 && (
+              <div className="gesture-history">
+                <h3 className="text-lg font-semibold text-gray-700 mb-2">Recent Gestures:</h3>
+                <div className="history-items">
+                  {history.map((item, index) => (
+                    <span key={index} className="history-item">
+                      {item}
+                      {index < history.length - 1 && <span className="history-arrow">→</span>}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
           </section>
         )}
 

@@ -81,6 +81,22 @@
   padding: 2rem;
   margin: 2rem 0;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+}
+
+.output-panel.gesture-detected {
+  border-color: #10b981;
+  box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.2), 0 10px 30px rgba(0, 0, 0, 0.1);
+  animation: pulse-border 0.5s ease;
+}
+
+@keyframes pulse-border {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.02);
+  }
 }
 
 .output-text {
@@ -95,8 +111,31 @@
   padding: 2rem;
   background: white;
   border-radius: 1rem;
-  margin-bottom: 1.5rem;
+  margin-bottom: 1rem;
   box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.gesture-label {
+  text-align: center;
+  font-size: 1rem;
+  color: #10b981;
+  font-weight: 600;
+  margin-bottom: 1rem;
+  animation: bounce-in 0.3s ease;
+}
+
+@keyframes bounce-in {
+  0% {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  50% {
+    transform: translateY(2px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 /* Output Control Buttons */
@@ -223,6 +262,42 @@
 .camera-btn:hover {
   transform: translateY(-2px);
   box-shadow: 0 6px 16px rgba(139, 92, 246, 0.4);
+}
+
+/* Gesture History */
+.gesture-history {
+  margin-top: 1.5rem;
+  padding: 1.5rem;
+  background: #f9fafb;
+  border-radius: 1rem;
+  border: 2px solid #e5e7eb;
+}
+
+.history-items {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.history-item {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.5rem 1rem;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border-radius: 0.5rem;
+  font-weight: 600;
+  font-size: 1rem;
+  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+}
+
+.history-arrow {
+  margin: 0 0.25rem;
+  color: #9ca3af;
+  font-size: 1.25rem;
+  font-weight: bold;
 }
 
 /* Future Section Placeholder */
