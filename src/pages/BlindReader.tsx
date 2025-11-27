@@ -16,6 +16,9 @@ export default function BlindReader() {
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [announcement, setAnnouncement] = useState('');
   const [isVisible, setIsVisible] = useState(false);
+  const [mode, setMode] = useState<'interactive' | 'continuous' | 'summary'>('interactive');
+  const [summaryText, setSummaryText] = useState('');
+  const [isGeneratingSummary, setIsGeneratingSummary] = useState(false);
 
   // Announce helper for aria-live
   const announce = (msg: string) => {
@@ -46,6 +49,65 @@ export default function BlindReader() {
 
   const resumeSpeech = () => {
     window.speechSynthesis.resume();
+  };
+
+  // Read-All Continuous Mode
+  const readAll = async () => {
+    stop();
+    announce('Starting continuous reading of all blocks.');
+    
+    for (let i = 0; i < blocks.length; i++) {
+      if (mode !== 'continuous') {
+        stop();
+        return;
+      }
+      
+      setSelectedIndex(i);
+      announce(`Reading block ${i + 1} of ${blocks.length}`);
+      speak(blocks[i].text);
+      
+      // Wait until speech ends before continuing
+      await new Promise<void>(resolve => {
+        const check = setInterval(() => {
+          if (!window.speechSynthesis.speaking) {
+            clearInterval(check);
+            resolve();
+          }
+        }, 250);
+      });
+    }
+
+    announce('Finished reading all content.');
+  };
+
+  // AI Simple Summary Mode
+  const requestAISummary = async () => {
+    setIsGeneratingSummary(true);
+    announce('Generating AI summary, please wait.');
+    
+    const fullText = blocks.map(b => b.text).join(' ');
+    
+    const promptText = `You are an accessibility assistant helping blind users. Summarize the following webpage in 5-10 simple, clear sentences. Make it easy to understand. Avoid jargon and unnecessary details. Focus on the main points.
+
+Text to summarize:
+${fullText}`;
+
+    try {
+      const aiResponse = await sendToOpenRouter(promptText);
+      setSummaryText(aiResponse);
+      setIsGeneratingSummary(false);
+      announce('AI summary ready. Speaking summary now.');
+      
+      // Wait a moment then speak
+      setTimeout(() => {
+        speak(aiResponse);
+      }, 500);
+    } catch (err) {
+      console.error('AI summary error:', err);
+      setIsGeneratingSummary(false);
+      announce('Error: AI summary failed. Please try again.');
+      setSummaryText('Failed to generate summary. Please check your internet connection and try again.');
+    }
   };
 
   // Segment long text into readable chunks (2 sentences max)
@@ -245,7 +307,7 @@ export default function BlindReader() {
     
     // Initial TTS announcement
     setTimeout(() => {
-      speak('Website Reader loaded. Use arrow keys to navigate blocks, press Enter to speak, Shift to stop, Control to replay, or Escape to go back.');
+      speak('Website Reader loaded. Press I for interactive mode, A for read-all mode, or M for AI summary mode. Use arrow keys to navigate, Enter to speak, Shift to stop, Control to replay, or Escape to go back.');
     }, 500);
 
     return () => {
@@ -253,76 +315,166 @@ export default function BlindReader() {
     };
   }, []);
 
+  // Handle mode changes
+  useEffect(() => {
+    if (blocks.length === 0) return;
+
+    if (mode === 'continuous') {
+      announce('Continuous read-all mode selected. Reading entire page automatically.');
+      readAll();
+    } else if (mode === 'summary') {
+      announce('AI simple summary mode selected. Generating summary.');
+      requestAISummary();
+    } else {
+      stop();
+      announce('Interactive mode selected. Use arrow keys to navigate blocks.');
+    }
+  }, [mode]);
+
   // Keyboard navigation
   useEffect(() => {
     function handleKey(e: KeyboardEvent) {
-      // ArrowDown → next block
-      if (e.key === 'ArrowDown') {
+      // Mode selection shortcuts
+      if (e.key.toLowerCase() === 'i' && !e.ctrlKey && !e.shiftKey) {
         e.preventDefault();
-        setSelectedIndex(prev => {
-          const next = Math.min(prev + 1, blocks.length - 1);
-          if (next !== prev) {
-            announce(`Moved to block ${next + 1}`);
-          }
-          return next;
-        });
-      }
-      
-      // ArrowUp → previous block
-      if (e.key === 'ArrowUp') {
-        e.preventDefault();
-        setSelectedIndex(prev => {
-          const next = Math.max(prev - 1, 0);
-          if (next !== prev) {
-            announce(`Moved to block ${next + 1}`);
-          }
-          return next;
-        });
+        setMode('interactive');
+        return;
       }
 
-      // Enter → Speak selected block
-      if (e.key === 'Enter') {
+      if (e.key.toLowerCase() === 'a' && !e.ctrlKey && !e.shiftKey) {
         e.preventDefault();
-        const block = blocks[selectedIndex];
-        if (block) {
-          announce(`Reading block ${selectedIndex + 1}`);
-          speak(block.text);
+        setMode('continuous');
+        return;
+      }
+
+      if (e.key.toLowerCase() === 'm' && !e.ctrlKey && !e.shiftKey) {
+        e.preventDefault();
+        setMode('summary');
+        return;
+      }
+
+      // Summary mode - limited controls
+      if (mode === 'summary') {
+        if (e.ctrlKey && !e.shiftKey && !e.altKey && e.key === 'Control') {
+          e.preventDefault();
+          if (summaryText) {
+            replay(summaryText);
+            announce('Replaying AI summary.');
+          }
+          return;
+        }
+
+        if (e.shiftKey && !e.ctrlKey && !e.altKey && e.key === 'Shift') {
+          e.preventDefault();
+          stop();
+          announce('Stopped reading.');
+          return;
+        }
+
+        if (e.key === 'Escape') {
+          e.preventDefault();
+          stop();
+          announce('Returning to blind menu.');
+          navigate('/blind');
+          return;
+        }
+
+        return; // Disable other keys in summary mode
+      }
+
+      // Continuous mode - limited controls
+      if (mode === 'continuous') {
+        if (e.shiftKey && !e.ctrlKey && !e.altKey && e.key === 'Shift') {
+          e.preventDefault();
+          stop();
+          setMode('interactive');
+          announce('Stopped continuous reading. Switched to interactive mode.');
+          return;
+        }
+
+        if (e.key === 'Escape') {
+          e.preventDefault();
+          stop();
+          announce('Returning to blind menu.');
+          navigate('/blind');
+          return;
+        }
+
+        return; // Disable other keys in continuous mode
+      }
+
+      // Interactive mode - full controls
+      if (mode === 'interactive') {
+        // ArrowDown → next block
+        if (e.key === 'ArrowDown') {
+          e.preventDefault();
+          setSelectedIndex(prev => {
+            const next = Math.min(prev + 1, blocks.length - 1);
+            if (next !== prev) {
+              announce(`Moved to block ${next + 1}`);
+            }
+            return next;
+          });
+          return;
+        }
+        
+        // ArrowUp → previous block
+        if (e.key === 'ArrowUp') {
+          e.preventDefault();
+          setSelectedIndex(prev => {
+            const next = Math.max(prev - 1, 0);
+            if (next !== prev) {
+              announce(`Moved to block ${next + 1}`);
+            }
+            return next;
+          });
+          return;
+        }
+
+        // Enter → Speak selected block
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          const block = blocks[selectedIndex];
+          if (block) {
+            announce(`Reading block ${selectedIndex + 1}`);
+            speak(block.text);
+          }
+          return;
+        }
+
+        // Shift → Stop TTS
+        if (e.shiftKey && !e.ctrlKey && !e.altKey && e.key === 'Shift') {
+          e.preventDefault();
+          stop();
+          announce('Stopped reading.');
+          return;
+        }
+
+        // Ctrl → Replay current block
+        if (e.ctrlKey && !e.shiftKey && !e.altKey && e.key === 'Control') {
+          e.preventDefault();
+          const block = blocks[selectedIndex];
+          if (block) {
+            replay(block.text);
+            announce('Replaying current block.');
+          }
+          return;
+        }
+
+        // ESC → Back to blind menu
+        if (e.key === 'Escape') {
+          e.preventDefault();
+          stop();
+          announce('Returning to blind menu.');
+          navigate('/blind');
+          return;
         }
       }
-
-      // Shift → Stop TTS
-      if (e.shiftKey && !e.ctrlKey && !e.altKey && e.key === 'Shift') {
-        e.preventDefault();
-        stop();
-        announce('Stopped reading.');
-      }
-
-      // Ctrl → Replay current block
-      if (e.ctrlKey && !e.shiftKey && !e.altKey && e.key === 'Control') {
-        e.preventDefault();
-        const block = blocks[selectedIndex];
-        if (block) {
-          replay(block.text);
-          announce('Replaying current block.');
-        }
-      }
-
-      // ESC → Back to blind menu
-      if (e.key === 'Escape') {
-        e.preventDefault();
-        stop();
-        announce('Returning to blind menu.');
-        navigate('/blind');
-      }
-
-      // TODO: Implement in later chapters:
-      // A → Read All Mode
-      // M → Simple Summary Mode
     }
 
     window.addEventListener('keydown', handleKey);
     return () => window.removeEventListener('keydown', handleKey);
-  }, [blocks, selectedIndex, navigate]);
+  }, [blocks, selectedIndex, mode, summaryText, navigate]);
 
   // Auto-scroll selected block into view
   useEffect(() => {
@@ -364,20 +516,54 @@ export default function BlindReader() {
         <div className="mode-section">
           <h2 className="mode-title">📖 Reading Modes</h2>
           <div className="mode-grid">
-            <div className="mode-card">
+            <button
+              onClick={() => setMode('interactive')}
+              className={`mode-card ${mode === 'interactive' ? 'mode-card-active' : ''}`}
+              aria-label="Interactive mode - navigate block by block"
+            >
               <h3>Interactive</h3>
               <p>Navigate block by block with full control</p>
-            </div>
-            <div className="mode-card">
+              <kbd className="mode-kbd">I</kbd>
+            </button>
+            <button
+              onClick={() => setMode('continuous')}
+              className={`mode-card ${mode === 'continuous' ? 'mode-card-active' : ''}`}
+              aria-label="Continuous mode - read all blocks automatically"
+            >
               <h3>Continuous</h3>
               <p>Read all blocks automatically</p>
-            </div>
-            <div className="mode-card">
+              <kbd className="mode-kbd">A</kbd>
+            </button>
+            <button
+              onClick={() => setMode('summary')}
+              className={`mode-card ${mode === 'summary' ? 'mode-card-active' : ''}`}
+              aria-label="AI Summary mode - get intelligent overview"
+            >
               <h3>AI Summary</h3>
               <p>Get a quick intelligent overview</p>
-            </div>
+              <kbd className="mode-kbd">M</kbd>
+            </button>
           </div>
         </div>
+
+        {/* AI Summary Display */}
+        {mode === 'summary' && (
+          <div className="summary-section">
+            <h2 className="summary-title">🤖 AI Summary</h2>
+            {isGeneratingSummary ? (
+              <div className="summary-loading">
+                <div className="spinner"></div>
+                <p>Generating AI summary, please wait...</p>
+              </div>
+            ) : summaryText ? (
+              <div className="summary-content">
+                <p>{summaryText}</p>
+              </div>
+            ) : (
+              <p className="summary-placeholder">Summary will appear here...</p>
+            )}
+          </div>
+        )}
 
         {/* Block Viewer Section */}
         <div className="blocks-section">
