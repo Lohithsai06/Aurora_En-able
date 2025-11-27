@@ -17,6 +17,37 @@ export default function BlindReader() {
   const [announcement, setAnnouncement] = useState('');
   const [isVisible, setIsVisible] = useState(false);
 
+  // Announce helper for aria-live
+  const announce = (msg: string) => {
+    setAnnouncement(msg);
+  };
+
+  // TTS utility functions
+  const speak = (text: string) => {
+    window.speechSynthesis.cancel();
+    const msg = new SpeechSynthesisUtterance(text);
+    msg.lang = 'en-US';
+    msg.rate = 0.9;
+    msg.pitch = 1;
+    window.speechSynthesis.speak(msg);
+  };
+
+  const stop = () => {
+    window.speechSynthesis.cancel();
+  };
+
+  const replay = (text: string) => {
+    speak(text);
+  };
+
+  const pauseSpeech = () => {
+    window.speechSynthesis.pause();
+  };
+
+  const resumeSpeech = () => {
+    window.speechSynthesis.resume();
+  };
+
   // Segment long text into readable chunks (2 sentences max)
   function segmentText(text: string): string[] {
     const sentences = text.split(/(?<=[.?!])\s+/);
@@ -187,14 +218,14 @@ export default function BlindReader() {
       if (uniqueBlocks.length > 0) {
         setBlocks(uniqueBlocks);
         setSelectedIndex(0);
-        setAnnouncement(`Extracted ${uniqueBlocks.length} readable blocks from this page.`);
+        announce(`Website reader loaded with ${uniqueBlocks.length} readable blocks.`);
       } else {
         // Fallback: show message if no content found
         setBlocks([
           { type: 'heading', text: 'No readable content found' },
           { type: 'paragraph', text: 'This page may not have standard content structure. Try navigating to a different page with article or blog content.' }
         ]);
-        setAnnouncement('No readable content found on this page.');
+        announce('No readable content found on this page.');
       }
       
     } catch (error) {
@@ -203,7 +234,7 @@ export default function BlindReader() {
         { type: 'heading', text: 'Extraction Error' },
         { type: 'paragraph', text: 'Unable to extract content from this page. The page structure may not be compatible.' }
       ]);
-      setAnnouncement('Error extracting content from page.');
+      announce('Error extracting content from page.');
     }
   }
 
@@ -211,7 +242,15 @@ export default function BlindReader() {
   useEffect(() => {
     setIsVisible(true);
     extractReadableContent();
-    setAnnouncement('Website Reader loaded. Use arrow keys to navigate blocks.');
+    
+    // Initial TTS announcement
+    setTimeout(() => {
+      speak('Website Reader loaded. Use arrow keys to navigate blocks, press Enter to speak, Shift to stop, Control to replay, or Escape to go back.');
+    }, 500);
+
+    return () => {
+      stop();
+    };
   }, []);
 
   // Keyboard navigation
@@ -220,32 +259,70 @@ export default function BlindReader() {
       // ArrowDown → next block
       if (e.key === 'ArrowDown') {
         e.preventDefault();
-        setSelectedIndex(prev => Math.min(prev + 1, blocks.length - 1));
+        setSelectedIndex(prev => {
+          const next = Math.min(prev + 1, blocks.length - 1);
+          if (next !== prev) {
+            announce(`Moved to block ${next + 1}`);
+          }
+          return next;
+        });
       }
       
       // ArrowUp → previous block
       if (e.key === 'ArrowUp') {
         e.preventDefault();
-        setSelectedIndex(prev => Math.max(prev - 1, 0));
+        setSelectedIndex(prev => {
+          const next = Math.max(prev - 1, 0);
+          if (next !== prev) {
+            announce(`Moved to block ${next + 1}`);
+          }
+          return next;
+        });
+      }
+
+      // Enter → Speak selected block
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        const block = blocks[selectedIndex];
+        if (block) {
+          announce(`Reading block ${selectedIndex + 1}`);
+          speak(block.text);
+        }
+      }
+
+      // Shift → Stop TTS
+      if (e.shiftKey && !e.ctrlKey && !e.altKey && e.key === 'Shift') {
+        e.preventDefault();
+        stop();
+        announce('Stopped reading.');
+      }
+
+      // Ctrl → Replay current block
+      if (e.ctrlKey && !e.shiftKey && !e.altKey && e.key === 'Control') {
+        e.preventDefault();
+        const block = blocks[selectedIndex];
+        if (block) {
+          replay(block.text);
+          announce('Replaying current block.');
+        }
       }
 
       // ESC → Back to blind menu
       if (e.key === 'Escape') {
         e.preventDefault();
+        stop();
+        announce('Returning to blind menu.');
         navigate('/blind');
       }
 
       // TODO: Implement in later chapters:
-      // Enter → Speak the block
-      // Shift → Stop TTS
-      // Ctrl → Replay
       // A → Read All Mode
       // M → Simple Summary Mode
     }
 
     window.addEventListener('keydown', handleKey);
     return () => window.removeEventListener('keydown', handleKey);
-  }, [blocks, navigate]);
+  }, [blocks, selectedIndex, navigate]);
 
   // Auto-scroll selected block into view
   useEffect(() => {
