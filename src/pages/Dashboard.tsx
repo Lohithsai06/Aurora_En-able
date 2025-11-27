@@ -31,9 +31,10 @@ export default function Dashboard() {
 
   const getGreeting = () => {
     const hour = currentTime.getHours();
-    if (hour < 12) return 'Good Morning';
-    if (hour < 18) return 'Good Afternoon';
-    return 'Good Evening';
+    if (hour < 12) return { text: 'Good Morning', emoji: '☀️', message: 'Start your day with accessibility' };
+    if (hour < 17) return { text: 'Good Afternoon', emoji: '🌤️', message: 'Making the web accessible for everyone' };
+    if (hour < 21) return { text: 'Good Evening', emoji: '🌆', message: 'Evening productivity at your fingertips' };
+    return { text: 'Good Night', emoji: '🌙', message: 'Accessibility never sleeps' };
   };
 
   const formatTime = () => {
@@ -43,6 +44,16 @@ export default function Dashboard() {
       hour12: true 
     });
   };
+
+  const formatDate = () => {
+    return currentTime.toLocaleDateString('en-US', { 
+      weekday: 'long',
+      month: 'long',
+      day: 'numeric'
+    });
+  };
+
+  const greeting = getGreeting();
 
   return (
     <div className="dashboard-page">
@@ -57,23 +68,42 @@ export default function Dashboard() {
         {/* Hero Header */}
         <div className="dashboard-hero">
           <div className="hero-content">
-            <div className="greeting-badge">
-              <Sparkles size={16} />
-              <span>{getGreeting()}</span>
+            <div className="greeting-section">
+              <div className="greeting-badge">
+                <span className="greeting-emoji">{greeting.emoji}</span>
+                <span className="greeting-text">{greeting.text}</span>
+              </div>
+              
+              <div className="date-time-row">
+                <div className="date-badge">
+                  <span>{formatDate()}</span>
+                </div>
+                <div className="time-badge">
+                  <Clock size={16} />
+                  <span>{formatTime()}</span>
+                </div>
+              </div>
             </div>
-            
-            <h1 className="hero-title">
-              Welcome back, <span className="user-name-gradient">{userName}</span>
-            </h1>
+
+            <div className="welcome-message">
+              <h1 className="hero-title">
+                Welcome back,
+              </h1>
+              <h2 className="user-name-display">
+                <span className="user-name-gradient">{userName}</span>
+                <Sparkles className="sparkle-icon" size={32} />
+              </h2>
+            </div>
             
             <p className="hero-subtitle">
-              Choose the accessibility tool that fits your needs
+              {greeting.message}
             </p>
 
-            <div className="time-display">
-              <Clock size={18} />
-              <span>{formatTime()}</span>
-            </div>
+            <div className="hero-divider"></div>
+
+            <p className="hero-instruction">
+              Select your accessibility tool below to get started
+            </p>
           </div>
         </div>
 
