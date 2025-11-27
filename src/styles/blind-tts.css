@@ -518,42 +518,52 @@
   box-shadow: 0 15px 40px rgba(139, 92, 246, 0.5);
 }
 
-/* Back Section */
-.back-section {
-  text-align: center;
+/* Keyboard Shortcut Instructions */
+.shortcut-instructions {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-top: 2rem;
+  padding: 2rem;
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.1) 0%, rgba(59, 130, 246, 0.1) 100%);
+  border: 2px solid rgba(139, 92, 246, 0.3);
+  border-radius: 1.5rem;
+  backdrop-filter: blur(10px);
+  animation: slideInUp 0.6s ease-out;
 }
 
-.back-button {
+.shortcut-text {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  font-size: 1.25rem;
+  color: #e5e7eb;
+  margin: 0;
+  padding: 0.75rem;
+  border-radius: 0.75rem;
+  transition: all 0.3s ease;
+}
+
+.shortcut-text:hover {
+  background: rgba(139, 92, 246, 0.15);
+  transform: translateX(8px);
+}
+
+.shortcut-key {
   display: inline-flex;
   align-items: center;
-  gap: 1rem;
-  padding: 1.5rem 3rem;
-  background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%);
-  border: 3px solid rgba(107, 114, 128, 0.5);
-  border-radius: 1.5rem;
-  font-size: 1.25rem;
+  justify-content: center;
+  min-width: 80px;
+  padding: 0.75rem 1.5rem;
+  background: linear-gradient(135deg, #8b5cf6 0%, #3b82f6 100%);
+  border: 2px solid rgba(139, 92, 246, 0.5);
+  border-radius: 0.75rem;
+  font-size: 1rem;
   font-weight: 700;
   color: white;
-  cursor: pointer;
-  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-  position: relative;
-}
-
-.back-button:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 15px 40px rgba(107, 114, 128, 0.4);
-}
-
-.back-button:focus {
-  outline: 4px solid rgba(107, 114, 128, 0.6);
-  outline-offset: 4px;
-}
-
-.back-button kbd {
-  padding: 0.375rem 0.75rem;
-  background: rgba(0, 0, 0, 0.3);
-  border-radius: 0.5rem;
-  font-size: 0.875rem;
+  text-transform: uppercase;
+  box-shadow: 0 4px 15px rgba(139, 92, 246, 0.3);
+  letter-spacing: 0.05em;
 }
 
 /* Responsive */
@@ -584,6 +594,21 @@
 
   .controls-section {
     grid-template-columns: repeat(2, 1fr);
+  }
+
+  .shortcut-instructions {
+    padding: 1.5rem;
+  }
+
+  .shortcut-text {
+    font-size: 1.125rem;
+    gap: 1rem;
+  }
+
+  .shortcut-key {
+    min-width: 70px;
+    padding: 0.625rem 1.25rem;
+    font-size: 0.875rem;
   }
 }
 
