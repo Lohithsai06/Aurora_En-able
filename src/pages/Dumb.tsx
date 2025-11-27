@@ -8,14 +8,28 @@ import '../styles/dumb.css';
 
 type Mode = 'gesture' | 'type' | 'symbol';
 
-// Gesture Mapping
+// Expanded Gesture Mapping - 17 gestures
 const gestureMap = {
+  // Core Gestures
   THUMBS_UP: "YES",
   FIST: "NO",
-  PALM: "STOP",
+  OPEN_PALM: "STOP",
   OK_SIGN: "DONE",
-  POINT: "NEXT",
-  HELP: "HELP"
+  POINT_RIGHT: "NEXT",
+  POINT_LEFT: "BACK",
+  TWO_FINGERS: "WAIT",
+  CALL_ME: "CALL",
+  HAND_WAVE: "HELLO",
+  DOUBLE_PALM: "EMERGENCY",
+  // Needs Gestures
+  BOTH_HANDS_OPEN: "HELP",
+  PALM_TAP: "WATER",
+  FIST_SHAKE: "PAIN",
+  ONE_FINGER_UP: "ATTENTION",
+  DOWN_PALM: "SLOW",
+  // Optional Gestures
+  HAND_OVER_CHEST: "THANK YOU",
+  DOUBLE_FIST: "ANGRY"
 } as const;
 
 type GestureType = keyof typeof gestureMap;
@@ -42,6 +56,10 @@ export default function Dumb() {
   const [activePhrase, setActivePhrase] = useState<string | null>(null);
   const [sentenceBuilder, setSentenceBuilder] = useState<string[]>([]);
   const [fastMode, setFastMode] = useState<boolean>(true); // Fast gesture mode enabled by default
+  const [isCalibrating, setIsCalibrating] = useState<boolean>(true);
+  const [isCalibrated, setIsCalibrated] = useState<boolean>(false);
+  const [calibrationProgress, setCalibrationProgress] = useState<number>(0);
+  const [trackingStatus, setTrackingStatus] = useState<string>('INITIALIZING');
   
   // Chapter 7 - New State Variables
   const [smartSuggestions, setSmartSuggestions] = useState<string[]>([]);
@@ -76,6 +94,45 @@ export default function Dumb() {
   const emergencyIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const urgencyTimerRef = useRef<NodeJS.Timeout | null>(null);
   const lastProcessTimeRef = useRef<number>(0);
+  const calibrationTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const calibrationStartRef = useRef<number>(0);
+  const previousGestureRef = useRef<string>('');
+
+  // Auto-Calibration System (3 seconds)
+  useEffect(() => {
+    if (currentMode !== 'gesture' || !cameraActive) return;
+    
+    setIsCalibrating(true);
+    setIsCalibrated(false);
+    setTrackingStatus('CALIBRATING');
+    calibrationStartRef.current = Date.now();
+    
+    const calibrationDuration = 3000; // 3 seconds
+    const updateInterval = 100; // Update progress every 100ms
+    
+    const progressInterval = setInterval(() => {
+      const elapsed = Date.now() - calibrationStartRef.current;
+      const progress = Math.min((elapsed / calibrationDuration) * 100, 100);
+      setCalibrationProgress(progress);
+      
+      if (elapsed >= calibrationDuration) {
+        clearInterval(progressInterval);
+        setIsCalibrating(false);
+        setIsCalibrated(true);
+        setTrackingStatus('READY');
+        setCalibrationProgress(100);
+        
+        // Show calibrated message
+        setTimeout(() => {
+          setTrackingStatus('TRACKING');
+        }, 1000);
+      }
+    }, updateInterval);
+    
+    return () => {
+      clearInterval(progressInterval);
+    };
+  }, [currentMode, cameraActive]);
 
   // Chapter 8 - Dark Mode Effect
   useEffect(() => {
@@ -682,56 +739,143 @@ Return ONLY the 3 alternative sentences, one per line, no numbering, no labels, 
     return indexExtended && middleCurled && ringCurled && pinkyCurled;
   };
 
-  // Gesture Detection: Help (rapid palm to fist)
-  const isHelpGesture = (landmarks: NormalizedLandmark[]): boolean => {
-    // This would require tracking state changes over time
-    // For now, we'll use a specific hand position as help
-    const wrist = landmarks[0];
-    const middleMCP = landmarks[9];
+  // Gesture Detection: Two Fingers (Peace sign)
+  const isTwoFingers = (landmarks: NormalizedLandmark[]): boolean => {
+    const indexExtended = isFingerExtended(landmarks, 8, 6);
+    const middleExtended = isFingerExtended(landmarks, 12, 10);
+    const ringCurled = landmarks[16].y > landmarks[14].y;
+    const pinkyCurled = landmarks[20].y > landmarks[18].y;
+    const thumbCurled = landmarks[4].x > landmarks[2].x;
     
-    // Hand raised high with all fingers partially curled
-    const handRaised = wrist.y < 0.3;
-    const partialCurl = landmarks[8].y > landmarks[6].y && landmarks[8].y < landmarks[5].y;
-    
-    return handRaised && partialCurl;
+    return indexExtended && middleExtended && ringCurled && pinkyCurled && thumbCurled;
   };
 
-  // Core Gesture Detection Function
+  // Gesture Detection: Call Me (pinky and thumb extended)
+  const isCallGesture = (landmarks: NormalizedLandmark[]): boolean => {
+    const thumbExtended = landmarks[4].y < landmarks[3].y;
+    const pinkyExtended = isFingerExtended(landmarks, 20, 18);
+    const indexCurled = landmarks[8].y > landmarks[6].y;
+    const middleCurled = landmarks[12].y > landmarks[10].y;
+    const ringCurled = landmarks[16].y > landmarks[14].y;
+    
+    return thumbExtended && pinkyExtended && indexCurled && middleCurled && ringCurled;
+  };
+
+  // Gesture Detection: One Finger Up (Attention)
+  const isOneFingerUp = (landmarks: NormalizedLandmark[]): boolean => {
+    const indexExtended = isFingerExtended(landmarks, 8, 6);
+    const middleCurled = landmarks[12].y > landmarks[10].y;
+    const ringCurled = landmarks[16].y > landmarks[14].y;
+    const pinkyCurled = landmarks[20].y > landmarks[18].y;
+    const thumbCurled = landmarks[4].x > landmarks[2].x;
+    
+    // Hand should be upright (wrist below index)
+    const upright = landmarks[0].y > landmarks[8].y;
+    
+    return indexExtended && middleCurled && ringCurled && pinkyCurled && thumbCurled && upright;
+  };
+
+  // Gesture Detection: Palm Down (SLOW)
+  const isPalmDown = (landmarks: NormalizedLandmark[]): boolean => {
+    const allExtended = isFingerExtended(landmarks, 8, 6) && 
+                       isFingerExtended(landmarks, 12, 10) && 
+                       isFingerExtended(landmarks, 16, 14) && 
+                       isFingerExtended(landmarks, 20, 18);
+    
+    // Palm facing down - wrist above fingertips
+    const palmDown = landmarks[0].y < landmarks[8].y;
+    
+    return allExtended && palmDown;
+  };
+
+  // Gesture Detection: Point Left
+  const isPointLeft = (landmarks: NormalizedLandmark[]): boolean => {
+    const indexExtended = isFingerExtended(landmarks, 8, 6);
+    const middleCurled = landmarks[12].y > landmarks[10].y;
+    const pointingLeft = landmarks[8].x < landmarks[5].x - 0.1;
+    
+    return indexExtended && middleCurled && pointingLeft;
+  };
+
+  // Gesture Detection: Point Right
+  const isPointRight = (landmarks: NormalizedLandmark[]): boolean => {
+    const indexExtended = isFingerExtended(landmarks, 8, 6);
+    const middleCurled = landmarks[12].y > landmarks[10].y;
+    const pointingRight = landmarks[8].x > landmarks[5].x + 0.1;
+    
+    return indexExtended && middleCurled && pointingRight;
+  };
+
+  // Gesture Detection: Open Palm (renamed from isPalm)
+  const isOpenPalm = (landmarks: NormalizedLandmark[]): boolean => {
+    // All fingers extended, palm facing camera
+    const indexExtended = isFingerExtended(landmarks, 8, 6);
+    const middleExtended = isFingerExtended(landmarks, 12, 10);
+    const ringExtended = isFingerExtended(landmarks, 16, 14);
+    const pinkyExtended = isFingerExtended(landmarks, 20, 18);
+    const palmFacing = landmarks[0].y > landmarks[9].y - 0.1;
+    
+    return indexExtended && middleExtended && ringExtended && pinkyExtended && palmFacing;
+  };
+
+  // Gesture Detection: Hand Over Chest (Thank You)
+  const isHandOverChest = (landmarks: NormalizedLandmark[]): boolean => {
+    const allExtended = isFingerExtended(landmarks, 8, 6) && 
+                       isFingerExtended(landmarks, 12, 10);
+    const centerPosition = landmarks[0].x > 0.3 && landmarks[0].x < 0.7;
+    const chestHeight = landmarks[0].y > 0.4 && landmarks[0].y < 0.6;
+    
+    return allExtended && centerPosition && chestHeight;
+  };
+
+  // Enhanced Core Gesture Detection Function with All 17 Gestures
   const detectGesture = (landmarks: NormalizedLandmark[]): string | null => {
     if (!landmarks || landmarks.length !== 21) return null;
     
+    // Skip detection during calibration
+    if (isCalibrating) return null;
+    
+    // Priority order: Emergency > Needs > Core > Optional
     if (isThumbUp(landmarks)) return gestureMap.THUMBS_UP;
-    if (isOkSign(landmarks)) return gestureMap.OK_SIGN;
-    if (isPointing(landmarks)) return gestureMap.POINT;
     if (isFist(landmarks)) return gestureMap.FIST;
-    if (isPalm(landmarks)) return gestureMap.PALM;
-    if (isHelpGesture(landmarks)) return gestureMap.HELP;
+    if (isOpenPalm(landmarks)) return gestureMap.OPEN_PALM;
+    if (isOkSign(landmarks)) return gestureMap.OK_SIGN;
+    if (isPointRight(landmarks)) return gestureMap.POINT_RIGHT;
+    if (isPointLeft(landmarks)) return gestureMap.POINT_LEFT;
+    if (isTwoFingers(landmarks)) return gestureMap.TWO_FINGERS;
+    if (isCallGesture(landmarks)) return gestureMap.CALL_ME;
+    if (isOneFingerUp(landmarks)) return gestureMap.ONE_FINGER_UP;
+    if (isPalmDown(landmarks)) return gestureMap.DOWN_PALM;
+    if (isHandOverChest(landmarks)) return gestureMap.HAND_OVER_CHEST;
     
     return null;
   };
 
-  // Update output with stability check (5 frames, 3/5 consensus)
+  // Update output with enhanced stability check (6 frames, 4/6 consensus)
   const updateGestureOutput = async (gesture: string) => {
     // Add to buffer
     gestureBufferRef.current.push(gesture);
     
-    // Keep only last 5 frames for better stability
-    if (gestureBufferRef.current.length > 5) {
+    // Keep only last 6 frames for ultra-stable detection
+    if (gestureBufferRef.current.length > 6) {
       gestureBufferRef.current.shift();
     }
     
-    // Check if gesture is stable (appears in at least 3 out of 5 frames)
-    if (gestureBufferRef.current.length >= 5) {
+    // Check if gesture is stable (appears in at least 4 out of 6 frames)
+    if (gestureBufferRef.current.length >= 6) {
       const gestureCount = gestureBufferRef.current.filter(g => g === gesture).length;
       
-      if (gestureCount >= 3 && gesture !== lastGestureRef.current) {
+      if (gestureCount >= 4 && gesture !== lastGestureRef.current) {
+        // Update tracking status
+        setTrackingStatus('TRACKING');
+        
         // Clear any pending debounce
         if (debounceTimerRef.current) {
           clearTimeout(debounceTimerRef.current);
         }
         
-        // Debounce gesture update (80ms in fast mode, 300ms in normal mode)
-        const debounceDelay = fastMode ? 80 : 300;
+        // Ultra-fast debounce (50ms in fast mode, 100ms in normal mode)
+        const debounceDelay = fastMode ? 50 : 100;
         debounceTimerRef.current = setTimeout(async () => {
           setDetectedGesture(gesture);
           setGestureConfirmed(true);
@@ -813,15 +957,15 @@ Return ONLY the 3 alternative sentences, one per line, no numbering, no labels, 
     };
   }, [currentMode]);
 
-  // Process webcam frames with optimized requestAnimationFrame
+  // Ultra-Fast Frame Processing (80ms = ~12.5 FPS)
   useEffect(() => {
     if (currentMode !== 'gesture' || !cameraActive) return;
 
     let lastFrameTime = 0;
     
-    const detectHands = async (currentTime: number) => {
-      // Process frames every 100ms for fast, smooth detection
-      if (currentTime - lastFrameTime >= 100) {
+    const fastProcessFrame = async (currentTime: number) => {
+      // Ultra-fast processing every 80ms for extreme responsiveness
+      if (currentTime - lastFrameTime >= 80) {
         if (
           webcamRef.current &&
           webcamRef.current.video &&
@@ -835,11 +979,11 @@ Return ONLY the 3 alternative sentences, one per line, no numbering, no labels, 
       }
       
       if (cameraActive && currentMode === 'gesture') {
-        animationFrameRef.current = requestAnimationFrame(detectHands);
+        animationFrameRef.current = requestAnimationFrame(fastProcessFrame);
       }
     };
 
-    animationFrameRef.current = requestAnimationFrame(detectHands);
+    animationFrameRef.current = requestAnimationFrame(fastProcessFrame);
 
     return () => {
       if (animationFrameRef.current) {
@@ -850,11 +994,11 @@ Return ONLY the 3 alternative sentences, one per line, no numbering, no labels, 
 
   // Draw hand landmarks on canvas
   const onHandsResults = (results: Results) => {
-    // Optimized processing for faster response (10 FPS)
+    // Ultra-fast processing (80ms throttle for 12.5 FPS)
     const now = Date.now();
     const timeSinceLastProcess = now - lastProcessTimeRef.current;
     
-    if (timeSinceLastProcess < 100) { // 100ms = 10 FPS for faster detection
+    if (timeSinceLastProcess < 80) { // 80ms = 12.5 FPS for ultra-fast detection
       return;
     }
     
@@ -1083,20 +1227,45 @@ Return ONLY the 3 alternative sentences, one per line, no numbering, no labels, 
                 </div>
               </div>
 
-              {/* RIGHT - Live Gesture Display Panel */}
+              {/* RIGHT - Enhanced Live Gesture Display Panel */}
               <div className="gesture-display-panel glass-card soft-shadow">
                 <h3 className="gesture-panel-title">DETECTED GESTURE</h3>
                 
-                {detectedGesture ? (
+                {/* Calibration Progress */}
+                {isCalibrating && (
+                  <div className="calibration-overlay">
+                    <div className="calibration-spinner">🎯</div>
+                    <div className="calibration-text">Calibrating...</div>
+                    <div className="calibration-progress-bar">
+                      <div 
+                        className="calibration-progress-fill" 
+                        style={{width: `${calibrationProgress}%`}}
+                      ></div>
+                    </div>
+                    <div className="calibration-instruction">Hold hand in neutral position</div>
+                  </div>
+                )}
+                
+                {/* Calibrated Indicator */}
+                {isCalibrated && trackingStatus === 'READY' && !detectedGesture && (
+                  <div className="calibrated-badge">
+                    <span className="calibrated-icon">✓</span>
+                    <span className="calibrated-text">System Calibrated</span>
+                  </div>
+                )}
+                
+                {!isCalibrating && detectedGesture ? (
                   <div className={`gesture-text pop-effect ${
                     detectedGesture === 'YES' ? 'gesture-yes' : 
                     detectedGesture === 'NO' ? 'gesture-no' : 
-                    detectedGesture === 'HELP' ? 'gesture-help' : 
+                    detectedGesture === 'HELP' || detectedGesture === 'EMERGENCY' ? 'gesture-help' : 
+                    detectedGesture === 'ATTENTION' || detectedGesture === 'PAIN' ? 'gesture-warning' :
+                    detectedGesture === 'WATER' || detectedGesture === 'CALL' ? 'gesture-need' :
                     'gesture-default'
                   }`}>
                     {detectedGesture}
                   </div>
-                ) : (
+                ) : !isCalibrating && (
                   <div className="gesture-waiting">
                     <span className="waiting-icon">👋</span>
                     <p className="waiting-text">Show a hand gesture...</p>
@@ -1105,8 +1274,10 @@ Return ONLY the 3 alternative sentences, one per line, no numbering, no labels, 
 
                 <div className="gesture-status">
                   <div className="status-row">
-                    <span className="status-dot" style={{background: detectedGesture ? '#10b981' : '#9ca3af'}}></span>
-                    <span className="status-text">{detectedGesture ? 'Active' : 'Waiting'}</span>
+                    <span className="status-dot" style={{
+                      background: isCalibrating ? '#f59e0b' : detectedGesture ? '#10b981' : '#9ca3af'
+                    }}></span>
+                    <span className="status-text">Status: {trackingStatus}</span>
                   </div>
                   <div className="status-row">
                     <span className="status-dot" style={{background: voiceEnabled ? '#10b981' : '#9ca3af'}}></span>
@@ -1114,7 +1285,7 @@ Return ONLY the 3 alternative sentences, one per line, no numbering, no labels, 
                   </div>
                   <div className="status-row">
                     <span className="status-dot" style={{background: fastMode ? '#f59e0b' : '#9ca3af'}}></span>
-                    <span className="status-text">Speed: {fastMode ? '⚡ FAST' : 'Normal'}</span>
+                    <span className="status-text">Mode: {fastMode ? '⚡ ULTRA FAST' : 'Normal'}</span>
                   </div>
                 </div>
               </div>
