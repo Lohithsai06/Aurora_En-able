@@ -1,8 +1,9 @@
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Upload, Volume2, Square, RotateCcw, ArrowLeft, FileImage, Loader } from 'lucide-react';
+import { Upload, Volume2, Square, RotateCcw, ArrowLeft, FileImage, Loader, Eye, Palette, BarChart3, Type, CheckCircle2, Sparkles } from 'lucide-react';
 import Tesseract from 'tesseract.js';
 import ColorThief from 'colorthief';
+import '../styles/blind-ocr.css';
 
 export default function BlindOCR() {
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
@@ -13,6 +14,9 @@ export default function BlindOCR() {
   const [finalSummary, setFinalSummary] = useState('');
   const [announcement, setAnnouncement] = useState('OCR Reader ready. Press U to upload an image.');
   const [isSpeaking, setIsSpeaking] = useState(false);
+  const [processingProgress, setProcessingProgress] = useState(0);
+  const [currentStep, setCurrentStep] = useState('');
+  const [isVisible, setIsVisible] = useState(false);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
   const imageRef = useRef<HTMLImageElement>(null);
@@ -168,20 +172,27 @@ export default function BlindOCR() {
   // Process image: OCR + Color + Chart
   const processImage = async (imageSrc: string) => {
     setIsProcessing(true);
+    setProcessingProgress(0);
     setAnnouncement('Starting image analysis. Please wait.');
 
     try {
       // OCR Processing
+      setCurrentStep('Extracting text from image...');
       setAnnouncement('Extracting text from image...');
+      setProcessingProgress(10);
+      
       const { data } = await Tesseract.recognize(imageSrc, 'eng', {
         logger: (m) => {
           if (m.status === 'recognizing text') {
+            const progress = 10 + Math.round(m.progress * 40);
+            setProcessingProgress(progress);
             setAnnouncement(`Text extraction: ${Math.round(m.progress * 100)}% complete.`);
           }
         }
       });
       const cleanedText = data.text.trim().replace(/\s+/g, ' ') || 'No text detected.';
       setOcrText(cleanedText);
+      setProcessingProgress(50);
       setAnnouncement('Text extraction complete.');
 
       // Wait for image to load
@@ -198,24 +209,32 @@ export default function BlindOCR() {
       }
 
       // Color Analysis
+      setCurrentStep('Analyzing colors...');
       setAnnouncement('Analyzing colors...');
+      setProcessingProgress(60);
       const colorAnalysis = await analyzeColors(imageRef.current);
       setColorInfo(colorAnalysis);
+      setProcessingProgress(75);
       setAnnouncement('Color analysis complete.');
 
       // Chart Detection
+      setCurrentStep('Detecting charts...');
       setAnnouncement('Detecting charts...');
+      setProcessingProgress(85);
       const chartAnalysis = await detectChart(imageRef.current);
       setChartInfo(chartAnalysis);
+      setProcessingProgress(95);
       setAnnouncement('Chart detection complete.');
 
       // Generate Final Summary
       const summary = `${colorAnalysis} ${chartAnalysis} Extracted text: "${cleanedText}"`;
       setFinalSummary(summary);
+      setProcessingProgress(100);
+      setCurrentStep('Complete!');
       setAnnouncement('Summary ready. Reading aloud now.');
 
       // Auto-play TTS
-      speak(summary);
+      setTimeout(() => speak(summary), 500);
 
       setIsProcessing(false);
     } catch (error) {
@@ -282,6 +301,7 @@ export default function BlindOCR() {
 
   // Initial announcement
   useEffect(() => {
+    setIsVisible(true);
     setTimeout(() => {
       speak('OCR Reader loaded. Press U to upload an image, R to replay audio, S to stop, or B to go back.');
     }, 500);
@@ -292,35 +312,57 @@ export default function BlindOCR() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-black text-white p-8">
+    <div className="ocr-page">
+      {/* Animated background */}
+      <div className="ocr-bg">
+        <div className="ocr-circle ocr-circle-1"></div>
+        <div className="ocr-circle ocr-circle-2"></div>
+        <div className="ocr-circle ocr-circle-3"></div>
+      </div>
+
       {/* Screen reader announcements */}
       <div aria-live="polite" className="sr-only">
         {announcement}
       </div>
 
-      <div className="max-w-4xl mx-auto">
+      <div className={`ocr-container ${isVisible ? 'visible' : ''}`}>
         {/* Header */}
-        <div className="text-center mb-12">
-          <div className="inline-flex items-center justify-center w-20 h-20 bg-blue-600 rounded-2xl mb-6">
-            <FileImage size={40} />
+        <div className="ocr-header">
+          <div className="ocr-icon-badge">
+            <Eye size={48} />
           </div>
-          <h1 className="text-5xl font-bold mb-4">OCR Reader</h1>
-          <p className="text-2xl text-gray-300 mb-6">Upload an image to extract and hear text</p>
+          <h1 className="ocr-title">OCR Reader</h1>
+          <p className="ocr-subtitle">
+            <Sparkles size={24} />
+            <span>Upload an image to extract and hear text, colors, and charts</span>
+          </p>
           
           {/* Keyboard shortcuts info */}
-          <div className="bg-gray-900 border-2 border-gray-700 rounded-xl p-6 text-left max-w-2xl mx-auto">
-            <h2 className="text-xl font-bold mb-4">Keyboard Shortcuts:</h2>
-            <ul className="space-y-2 text-lg">
-              <li><kbd className="bg-gray-700 px-3 py-1 rounded">U</kbd> - Upload Image</li>
-              <li><kbd className="bg-gray-700 px-3 py-1 rounded">R</kbd> - Replay Audio</li>
-              <li><kbd className="bg-gray-700 px-3 py-1 rounded">S</kbd> - Stop Audio</li>
-              <li><kbd className="bg-gray-700 px-3 py-1 rounded">B</kbd> - Back to Menu</li>
-            </ul>
+          <div className="shortcuts-card">
+            <h2 className="shortcuts-title">⌨️ Keyboard Shortcuts</h2>
+            <div className="shortcuts-grid">
+              <div className="shortcut-item">
+                <kbd>U</kbd>
+                <span>Upload Image</span>
+              </div>
+              <div className="shortcut-item">
+                <kbd>R</kbd>
+                <span>Replay Audio</span>
+              </div>
+              <div className="shortcut-item">
+                <kbd>S</kbd>
+                <span>Stop Audio</span>
+              </div>
+              <div className="shortcut-item">
+                <kbd>B</kbd>
+                <span>Back to Menu</span>
+              </div>
+            </div>
           </div>
         </div>
 
         {/* Upload Section */}
-        <div className="mb-12">
+        <div className="upload-section">
           <input
             ref={fileInputRef}
             type="file"
@@ -332,7 +374,7 @@ export default function BlindOCR() {
           />
           <label
             htmlFor="file-upload"
-            className="block w-full bg-blue-600 hover:bg-blue-700 text-white text-2xl font-bold py-8 px-6 rounded-xl cursor-pointer transition-all border-4 border-blue-400 focus-within:outline-none focus-within:ring-4 focus-within:ring-blue-300"
+            className="upload-button"
             tabIndex={0}
             onKeyDown={(e) => {
               if (e.key === 'Enter' || e.key === ' ') {
@@ -341,30 +383,44 @@ export default function BlindOCR() {
               }
             }}
           >
-            <div className="flex items-center justify-center gap-4">
-              <Upload size={48} />
-              <span>Upload Image (Press U)</span>
+            <div className="upload-icon">
+              <Upload size={56} />
             </div>
+            <span className="upload-text">Upload Image</span>
+            <span className="upload-hint">Click or press U</span>
           </label>
         </div>
 
         {/* Processing Status */}
         {isProcessing && (
-          <div className="bg-yellow-600 border-4 border-yellow-400 rounded-xl p-8 mb-12 text-center">
-            <Loader size={48} className="animate-spin mx-auto mb-4" />
-            <p className="text-2xl font-bold">Processing image... Please wait.</p>
-            <p className="text-xl mt-2">{announcement}</p>
+          <div className="processing-card">
+            <div className="processing-spinner">
+              <Loader size={56} />
+            </div>
+            <h3 className="processing-title">Processing Image</h3>
+            <p className="processing-step">{currentStep}</p>
+            <div className="progress-bar">
+              <div 
+                className="progress-fill" 
+                style={{ width: `${processingProgress}%` }}
+              ></div>
+            </div>
+            <p className="progress-text">{processingProgress}% Complete</p>
           </div>
         )}
 
         {/* Image Preview (for low vision users) */}
-        {selectedImage && (
-          <div className="mb-12 border-4 border-gray-700 rounded-xl overflow-hidden">
+        {selectedImage && !isProcessing && (
+          <div className="image-preview">
+            <div className="preview-label">
+              <FileImage size={20} />
+              <span>Image Preview</span>
+            </div>
             <img
               ref={imageRef}
               src={selectedImage}
               alt="Uploaded image preview"
-              className="w-full h-auto max-h-96 object-contain bg-gray-900"
+              className="preview-image"
               crossOrigin="anonymous"
             />
           </div>
@@ -372,88 +428,93 @@ export default function BlindOCR() {
 
         {/* Results Section */}
         {finalSummary && !isProcessing && (
-          <div className="space-y-8">
-            {/* Summary */}
-            <div className="bg-gray-900 border-4 border-green-500 rounded-xl p-8">
-              <h2 className="text-3xl font-bold mb-6 flex items-center gap-3">
-                <Volume2 size={36} className="text-green-500" />
-                Summary
-              </h2>
-              <p className="text-2xl leading-relaxed text-gray-100">{finalSummary}</p>
+          <div className="results-section">
+            {/* Summary Card */}
+            <div className="summary-card">
+              <div className="summary-header">
+                <div className="summary-icon">
+                  <Volume2 size={32} />
+                </div>
+                <h2 className="summary-title">Analysis Summary</h2>
+                {isSpeaking && <span className="speaking-badge">Speaking...</span>}
+              </div>
+              <p className="summary-text">{finalSummary}</p>
             </div>
 
             {/* Audio Controls */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="controls-grid">
               <button
                 onClick={replaySummary}
-                className="bg-green-600 hover:bg-green-700 text-white text-xl font-bold py-6 px-6 rounded-xl transition-all border-4 border-green-400 focus:outline-none focus:ring-4 focus:ring-green-300"
+                className="control-btn control-btn-replay"
                 aria-label="Replay audio summary"
               >
-                <div className="flex items-center justify-center gap-3">
-                  <RotateCcw size={28} />
-                  <span>Replay (R)</span>
-                </div>
+                <RotateCcw size={28} />
+                <span>Replay</span>
+                <kbd>R</kbd>
               </button>
 
               <button
                 onClick={stopSpeech}
-                className="bg-red-600 hover:bg-red-700 text-white text-xl font-bold py-6 px-6 rounded-xl transition-all border-4 border-red-400 focus:outline-none focus:ring-4 focus:ring-red-300"
+                className="control-btn control-btn-stop"
                 aria-label="Stop audio"
                 disabled={!isSpeaking}
               >
-                <div className="flex items-center justify-center gap-3">
-                  <Square size={28} />
-                  <span>Stop (S)</span>
-                </div>
+                <Square size={28} />
+                <span>Stop</span>
+                <kbd>S</kbd>
               </button>
 
               <button
                 onClick={() => navigate('/blind')}
-                className="bg-gray-700 hover:bg-gray-600 text-white text-xl font-bold py-6 px-6 rounded-xl transition-all border-4 border-gray-500 focus:outline-none focus:ring-4 focus:ring-gray-300"
+                className="control-btn control-btn-back"
                 aria-label="Back to blind menu"
               >
-                <div className="flex items-center justify-center gap-3">
-                  <ArrowLeft size={28} />
-                  <span>Back (B)</span>
-                </div>
+                <ArrowLeft size={28} />
+                <span>Back</span>
+                <kbd>B</kbd>
               </button>
             </div>
 
-            {/* Detailed Results */}
-            <details className="bg-gray-900 border-2 border-gray-700 rounded-xl p-6">
-              <summary className="text-2xl font-bold cursor-pointer hover:text-blue-400 transition-colors">
-                View Detailed Results
-              </summary>
-              <div className="mt-6 space-y-4 text-lg">
-                <div>
-                  <h3 className="font-bold text-xl mb-2 text-blue-400">Color Analysis:</h3>
-                  <p className="text-gray-300">{colorInfo}</p>
+            {/* Detailed Results Cards */}
+            <div className="details-grid">
+              <div className="detail-card">
+                <div className="detail-icon" style={{ background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)' }}>
+                  <Palette size={28} />
                 </div>
-                <div>
-                  <h3 className="font-bold text-xl mb-2 text-blue-400">Chart Detection:</h3>
-                  <p className="text-gray-300">{chartInfo}</p>
-                </div>
-                <div>
-                  <h3 className="font-bold text-xl mb-2 text-blue-400">Extracted Text:</h3>
-                  <p className="text-gray-300 whitespace-pre-wrap">{ocrText}</p>
-                </div>
+                <h3 className="detail-title">Color Analysis</h3>
+                <p className="detail-text">{colorInfo}</p>
               </div>
-            </details>
+
+              <div className="detail-card">
+                <div className="detail-icon" style={{ background: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)' }}>
+                  <BarChart3 size={28} />
+                </div>
+                <h3 className="detail-title">Chart Detection</h3>
+                <p className="detail-text">{chartInfo}</p>
+              </div>
+
+              <div className="detail-card detail-card-full">
+                <div className="detail-icon" style={{ background: 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)' }}>
+                  <Type size={28} />
+                </div>
+                <h3 className="detail-title">Extracted Text</h3>
+                <p className="detail-text detail-text-wrap">{ocrText}</p>
+              </div>
+            </div>
           </div>
         )}
 
-        {/* Back Button (always visible) */}
+        {/* Back Button (always visible when no results) */}
         {!finalSummary && !isProcessing && (
-          <div className="text-center">
+          <div className="back-section">
             <button
               onClick={() => navigate('/blind')}
-              className="bg-gray-700 hover:bg-gray-600 text-white text-xl font-bold py-6 px-8 rounded-xl transition-all border-4 border-gray-500 focus:outline-none focus:ring-4 focus:ring-gray-300"
+              className="back-button"
               aria-label="Back to blind menu"
             >
-              <div className="flex items-center justify-center gap-3">
-                <ArrowLeft size={28} />
-                <span>Back to Menu (B)</span>
-              </div>
+              <ArrowLeft size={28} />
+              <span>Back to Menu</span>
+              <kbd>B</kbd>
             </button>
           </div>
         )}
