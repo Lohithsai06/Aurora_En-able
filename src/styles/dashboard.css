@@ -1,35 +1,34 @@
 .dashboard-page {
   min-height: 100vh;
-  background: linear-gradient(135deg, #e0f2fe 0%, #dbeafe 100%);
-  padding: 4rem 2rem;
+  padding: 4rem 0;
+  background: linear-gradient(180deg, #f7faff 0%, #eef2f7 100%);
 }
 
 .dashboard-container {
-  max-width: 1200px;
+  max-width: 1280px;
   margin: 0 auto;
 }
 
 .dashboard-header {
   text-align: center;
-  margin-bottom: 4rem;
-}
-
-.dashboard-title {
-  font-size: 2.5rem;
-  color: var(--text);
   margin-bottom: 0.5rem;
 }
 
+.dashboard-title {
+  font-size: 2rem;
+  color: #374151;
+  margin-bottom: 0.25rem;
+}
+
 .user-name {
-  background: linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  color: #2563eb;
+  font-weight: 700;
 }
 
 .dashboard-subtitle {
-  font-size: 1.25rem;
-  color: var(--text-light);
+  font-size: 1.125rem;
+  color: #6b7280;
+  margin-top: 0.5rem;
 }
 
 .dashboard-grid {
@@ -37,8 +36,6 @@
   grid-template-columns: repeat(1, 1fr);
   gap: 2rem;
   animation-delay: 0.2s;
-  max-width: 1200px;
-  margin: 0 auto;
 }
 
 @media (min-width: 768px) {
@@ -54,51 +51,24 @@
 }
 
 .card-button {
-  min-height: 250px;
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-start;
-  align-items: center;
-  background: white;
-  border-radius: 12px;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  padding: 1.5rem;
-  padding-top: 2rem;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  border: 2px solid transparent;
+  min-height: 220px;
+  display: block;
 }
 
-.card-button:hover {
-  transform: translateY(-8px);
-  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
-  border-color: #3b82f6;
+.card-blob {
+  filter: blur(12px);
 }
 
-.card-icon {
-  font-size: 3rem;
-  margin-bottom: 0.75rem;
-  color: #3b82f6;
-  display: flex;
-  justify-content: center;
-  align-items: center;
+.feature-grid .card-button {
+  height: 100%;
 }
 
 .card-title {
-  font-size: 1.25rem;
-  font-weight: 600;
   color: #111 !important;
-  margin-bottom: 0.5rem;
-  text-align: center;
-  line-height: 1.4;
 }
 
 .card-description {
-  font-size: 0.9rem;
-  line-height: 1.5;
-  color: #666 !important;
-  text-align: center;
-  margin: 0;
+  color: #4b5563 !important;
 }
 
 @media (max-width: 768px) {
