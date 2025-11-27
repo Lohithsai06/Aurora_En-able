@@ -198,40 +198,59 @@ export default function BlindTTS() {
 
   // Global keyboard shortcuts
   useEffect(() => {
-    const handleGlobalKeyDown = (e: KeyboardEvent) => {
-      // Don't trigger if user is typing in textarea
-      if (document.activeElement === textareaRef.current) {
+    const handleKey = (e: KeyboardEvent) => {
+      // ENTER → summarize + speak (works everywhere)
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        speak();
         return;
       }
 
-      const key = e.key.toLowerCase();
-      
-      if (key === 's') {
-        e.preventDefault();
-        stopSpeech();
-      } else if (key === 'p') {
-        e.preventDefault();
-        if (isPaused) {
-          resumeSpeech();
-        } else {
-          pauseSpeech();
-        }
-      } else if (key === 'r') {
+      // CTRL → replay summary
+      if (e.ctrlKey && !e.shiftKey && !e.altKey && e.key === 'Control') {
         e.preventDefault();
         replayAudio();
-      } else if (key === 'c') {
-        e.preventDefault();
-        clearText();
-      } else if (key === 'b') {
+        setAnnouncement('Replaying summary.');
+        return;
+      }
+
+      // SHIFT → stop speech
+      if (e.shiftKey && !e.ctrlKey && !e.altKey && e.key === 'Shift') {
         e.preventDefault();
         stopSpeech();
+        setAnnouncement('Speech stopped.');
+        return;
+      }
+
+      // ESC → back to blind menu
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        stopSpeech();
+        setAnnouncement('Returning to blind menu.');
         navigate('/blind');
+        return;
+      }
+
+      // OPTIONAL: P → pause
+      if (e.key.toLowerCase() === 'p' && !e.ctrlKey && !e.shiftKey) {
+        e.preventDefault();
+        pauseSpeech();
+        setAnnouncement('Speech paused.');
+        return;
+      }
+
+      // OPTIONAL: C → resume
+      if (e.key.toLowerCase() === 'c' && !e.ctrlKey && !e.shiftKey) {
+        e.preventDefault();
+        resumeSpeech();
+        setAnnouncement('Speech resumed.');
+        return;
       }
     };
 
-    window.addEventListener('keydown', handleGlobalKeyDown);
-    return () => window.removeEventListener('keydown', handleGlobalKeyDown);
-  }, [isSpeaking, isPaused, summary, text, navigate]);
+    window.addEventListener('keydown', handleKey);
+    return () => window.removeEventListener('keydown', handleKey);
+  }, [summary, text, navigate]);
 
   // Initial announcement and animation
   useEffect(() => {
@@ -239,7 +258,7 @@ export default function BlindTTS() {
     
     setTimeout(() => {
       const msg = new SpeechSynthesisUtterance(
-        'Text to Speech page loaded. Type your text and press Enter to speak it. Toggle AI mode to get a summary first. Press S to stop, P to pause, R to replay, C to clear, or B to go back.'
+        'Text to Speech page loaded. Type your text and press Enter to speak it. Toggle AI mode to get a summary first. Press SHIFT to stop, P to pause, C to resume, CTRL to replay, or ESC to go back.'
       );
       msg.rate = 0.9;
       window.speechSynthesis.speak(msg);
@@ -458,17 +477,6 @@ export default function BlindTTS() {
           </button>
 
           <button
-            onClick={replayAudio}
-            className="control-btn control-btn-replay"
-            aria-label="Replay audio"
-            disabled={(!summary && !text) || isSummarizing}
-          >
-            <Volume2 size={28} />
-            <span>Replay</span>
-            <kbd>R</kbd>
-          </button>
-
-          <button
             onClick={pauseSpeech}
             className="control-btn control-btn-pause"
             aria-label="Pause speech"
@@ -487,18 +495,7 @@ export default function BlindTTS() {
           >
             <Play size={28} />
             <span>Resume</span>
-            <kbd>P</kbd>
-          </button>
-
-          <button
-            onClick={stopSpeech}
-            className="control-btn control-btn-stop"
-            aria-label="Stop speech"
-            disabled={!isSpeaking}
-          >
-            <Square size={28} />
-            <span>Stop</span>
-            <kbd>S</kbd>
+            <kbd>C</kbd>
           </button>
 
           <button
@@ -509,25 +506,26 @@ export default function BlindTTS() {
           >
             <Trash2 size={28} />
             <span>Clear</span>
-            <kbd>C</kbd>
           </button>
         </div>
 
-        {/* Back Button */}
-        <div className="back-section">
-          <button
-            onClick={() => {
-              stopSpeech();
-              navigate('/blind');
-            }}
-            className="back-button"
-            aria-label="Back to blind menu"
-          >
-            <ArrowLeft size={28} />
-            <span>Back to Menu</span>
-            <kbd>B</kbd>
-          </button>
+        {/* Keyboard Shortcut Instructions */}
+        <div className="shortcut-instructions">
+          <p className="shortcut-text">
+            <kbd className="shortcut-key">ESC</kbd>
+            <span>Press ESC to go back</span>
+          </p>
+          <p className="shortcut-text">
+            <kbd className="shortcut-key">CTRL</kbd>
+            <span>Press CTRL to replay</span>
+          </p>
+          <p className="shortcut-text">
+            <kbd className="shortcut-key">SHIFT</kbd>
+            <span>Press SHIFT to stop</span>
+          </p>
         </div>
+
+
       </div>
     </div>
   );
