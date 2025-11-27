@@ -107,8 +107,8 @@ export default function Dumb() {
     setTrackingStatus('CALIBRATING');
     calibrationStartRef.current = Date.now();
     
-    const calibrationDuration = 3000; // 3 seconds
-    const updateInterval = 100; // Update progress every 100ms
+    const calibrationDuration = 2000; // 2 seconds for faster startup
+    const updateInterval = 50; // Update progress every 50ms for smoother animation
     
     const progressInterval = setInterval(() => {
       const elapsed = Date.now() - calibrationStartRef.current;
@@ -851,21 +851,21 @@ Return ONLY the 3 alternative sentences, one per line, no numbering, no labels, 
     return null;
   };
 
-  // Update output with enhanced stability check (6 frames, 4/6 consensus)
+  // Instant output with minimal stability check (3 frames, 2/3 consensus)
   const updateGestureOutput = async (gesture: string) => {
     // Add to buffer
     gestureBufferRef.current.push(gesture);
     
-    // Keep only last 6 frames for ultra-stable detection
-    if (gestureBufferRef.current.length > 6) {
+    // Keep only last 3 frames for fastest detection
+    if (gestureBufferRef.current.length > 3) {
       gestureBufferRef.current.shift();
     }
     
-    // Check if gesture is stable (appears in at least 4 out of 6 frames)
-    if (gestureBufferRef.current.length >= 6) {
+    // Check if gesture is stable (appears in at least 2 out of 3 frames)
+    if (gestureBufferRef.current.length >= 3) {
       const gestureCount = gestureBufferRef.current.filter(g => g === gesture).length;
       
-      if (gestureCount >= 4 && gesture !== lastGestureRef.current) {
+      if (gestureCount >= 2 && gesture !== lastGestureRef.current) {
         // Update tracking status
         setTrackingStatus('TRACKING');
         
@@ -874,9 +874,8 @@ Return ONLY the 3 alternative sentences, one per line, no numbering, no labels, 
           clearTimeout(debounceTimerRef.current);
         }
         
-        // Ultra-fast debounce (50ms in fast mode, 100ms in normal mode)
-        const debounceDelay = fastMode ? 50 : 100;
-        debounceTimerRef.current = setTimeout(async () => {
+        // NO DEBOUNCE - Instant response
+        (async () => {
           setDetectedGesture(gesture);
           setGestureConfirmed(true);
           lastGestureRef.current = gesture;
@@ -919,7 +918,7 @@ Return ONLY the 3 alternative sentences, one per line, no numbering, no labels, 
           
           // Reset confirmation animation after 500ms
           setTimeout(() => setGestureConfirmed(false), 500);
-        }, 300);
+        })();
       }
     }
   };
@@ -936,9 +935,9 @@ Return ONLY the 3 alternative sentences, one per line, no numbering, no labels, 
 
     hands.setOptions({
       maxNumHands: 1,
-      modelComplexity: 1,
-      minDetectionConfidence: 0.7,
-      minTrackingConfidence: 0.7,
+      modelComplexity: 0, // Fastest model for real-time performance
+      minDetectionConfidence: 0.5, // Lower threshold for faster detection
+      minTrackingConfidence: 0.5, // Lower threshold for smoother tracking
     });
 
     hands.onResults(onHandsResults);
@@ -957,33 +956,28 @@ Return ONLY the 3 alternative sentences, one per line, no numbering, no labels, 
     };
   }, [currentMode]);
 
-  // Ultra-Fast Frame Processing (80ms = ~12.5 FPS)
+  // Real-Time Frame Processing - Process Every Frame for Instant Response
   useEffect(() => {
     if (currentMode !== 'gesture' || !cameraActive) return;
 
-    let lastFrameTime = 0;
-    
-    const fastProcessFrame = async (currentTime: number) => {
-      // Ultra-fast processing every 80ms for extreme responsiveness
-      if (currentTime - lastFrameTime >= 80) {
-        if (
-          webcamRef.current &&
-          webcamRef.current.video &&
-          webcamRef.current.video.readyState === 4 &&
-          handsRef.current
-        ) {
-          const video = webcamRef.current.video;
-          await handsRef.current.send({ image: video });
-          lastFrameTime = currentTime;
-        }
+    const processFrame = async () => {
+      // Process every single frame with no throttling for instant detection
+      if (
+        webcamRef.current &&
+        webcamRef.current.video &&
+        webcamRef.current.video.readyState === 4 &&
+        handsRef.current
+      ) {
+        const video = webcamRef.current.video;
+        await handsRef.current.send({ image: video });
       }
       
       if (cameraActive && currentMode === 'gesture') {
-        animationFrameRef.current = requestAnimationFrame(fastProcessFrame);
+        animationFrameRef.current = requestAnimationFrame(processFrame);
       }
     };
 
-    animationFrameRef.current = requestAnimationFrame(fastProcessFrame);
+    animationFrameRef.current = requestAnimationFrame(processFrame);
 
     return () => {
       if (animationFrameRef.current) {
@@ -994,16 +988,7 @@ Return ONLY the 3 alternative sentences, one per line, no numbering, no labels, 
 
   // Draw hand landmarks on canvas
   const onHandsResults = (results: Results) => {
-    // Ultra-fast processing (80ms throttle for 12.5 FPS)
-    const now = Date.now();
-    const timeSinceLastProcess = now - lastProcessTimeRef.current;
-    
-    if (timeSinceLastProcess < 80) { // 80ms = 12.5 FPS for ultra-fast detection
-      return;
-    }
-    
-    lastProcessTimeRef.current = now;
-
+    // No throttling - process every single result immediately for real-time response
     const canvas = canvasRef.current;
     if (!canvas) return;
 
