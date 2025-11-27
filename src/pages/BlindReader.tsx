@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Globe, ArrowLeft, Keyboard } from 'lucide-react';
 import { sendToOpenRouter } from '../lib/openrouter';
+import '../styles/blind-reader.css';
 
 // Block type definition
 interface ContentBlock {
@@ -253,70 +254,75 @@ export default function BlindReader() {
   }, [selectedIndex]);
 
   return (
-    <div className="min-h-screen bg-black text-white p-6">
+    <div className="reader-page">
+      {/* Animated Background */}
+      <div className="reader-bg">
+        <div className="reader-particle"></div>
+        <div className="reader-particle"></div>
+        <div className="reader-particle"></div>
+        <div className="reader-particle"></div>
+        <div className="reader-particle"></div>
+      </div>
+
       {/* Aria-live announcer for screen readers */}
       <div aria-live="polite" className="sr-only">
         {announcement}
       </div>
 
-      <div className={`max-w-4xl mx-auto transition-opacity duration-500 ${isVisible ? 'opacity-100' : 'opacity-0'}`}>
+      <div className={`reader-container ${isVisible ? 'visible' : ''}`}>
         
         {/* Header Section */}
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-20 h-20 bg-blue-600 rounded-full mb-4">
+        <div className="reader-header">
+          <div className="reader-icon-badge">
             <Globe size={48} />
           </div>
-          <h1 className="text-5xl font-bold mb-3">Website Reader</h1>
-          <p className="text-2xl text-gray-300 flex items-center justify-center gap-3">
+          <h1 className="reader-title">Website Reader</h1>
+          <p className="reader-subtitle">
             <Keyboard size={24} />
             <span>Navigate this page using arrow keys</span>
           </p>
         </div>
 
-        {/* Modes Section (Placeholder) */}
-        <div className="bg-gray-900 rounded-2xl p-6 mb-6 border-2 border-gray-700">
-          <h2 className="text-2xl font-bold mb-4">📖 Reading Modes</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="bg-gray-800 p-4 rounded-xl border-2 border-gray-600">
-              <h3 className="text-xl font-semibold mb-2">Interactive</h3>
-              <p className="text-gray-400">Navigate block by block</p>
+        {/* Modes Section */}
+        <div className="mode-section">
+          <h2 className="mode-title">📖 Reading Modes</h2>
+          <div className="mode-grid">
+            <div className="mode-card">
+              <h3>Interactive</h3>
+              <p>Navigate block by block with full control</p>
             </div>
-            <div className="bg-gray-800 p-4 rounded-xl border-2 border-gray-600">
-              <h3 className="text-xl font-semibold mb-2">Continuous</h3>
-              <p className="text-gray-400">Read all blocks</p>
+            <div className="mode-card">
+              <h3>Continuous</h3>
+              <p>Read all blocks automatically</p>
             </div>
-            <div className="bg-gray-800 p-4 rounded-xl border-2 border-gray-600">
-              <h3 className="text-xl font-semibold mb-2">AI Summary</h3>
-              <p className="text-gray-400">Quick overview</p>
+            <div className="mode-card">
+              <h3>AI Summary</h3>
+              <p>Get a quick intelligent overview</p>
             </div>
           </div>
         </div>
 
         {/* Block Viewer Section */}
-        <div className="bg-gray-900 rounded-2xl p-6 mb-6 border-2 border-gray-700">
-          <h2 className="text-2xl font-bold mb-4">📄 Content Blocks</h2>
-          <div className="space-y-4 max-h-96 overflow-y-auto">
+        <div className="blocks-section">
+          <h2 className="blocks-title">📄 Content Blocks</h2>
+          <div className="blocks-container">
             {blocks.map((block, i) => (
               <div
                 key={i}
                 id={`block-${i}`}
-                className={`p-6 rounded-xl transition-all duration-300 ${
-                  i === selectedIndex
-                    ? 'bg-blue-700 border-4 border-blue-400 shadow-lg scale-105'
-                    : 'bg-gray-800 border-2 border-gray-600'
-                }`}
+                className={`content-block ${i === selectedIndex ? 'selected' : ''}`}
               >
-                <div className="flex items-start gap-3">
-                  <span className="text-3xl font-bold text-blue-300">#{i + 1}</span>
-                  <div className="flex-1">
+                <div className="block-content">
+                  <span className="block-number">#{i + 1}</span>
+                  <div className="block-text-wrapper">
                     {block.type === 'heading' && (
-                      <h3 className="text-2xl font-bold text-yellow-300 leading-relaxed">{block.text}</h3>
+                      <h3 className="block-heading">{block.text}</h3>
                     )}
                     {block.type === 'paragraph' && (
-                      <p className="text-xl leading-relaxed">{block.text}</p>
+                      <p className="block-paragraph">{block.text}</p>
                     )}
                     {block.type === 'list' && (
-                      <p className="text-xl leading-relaxed text-green-300">{block.text}</p>
+                      <p className="block-list">{block.text}</p>
                     )}
                   </div>
                 </div>
@@ -326,43 +332,43 @@ export default function BlindReader() {
         </div>
 
         {/* Keyboard Controls Description */}
-        <div className="bg-gray-900 rounded-2xl p-6 mb-6 border-2 border-gray-700">
-          <h2 className="text-2xl font-bold mb-4">⌨️ Keyboard Controls</h2>
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-lg">
-            <div className="bg-gray-800 p-4 rounded-xl">
-              <kbd className="bg-blue-600 px-3 py-2 rounded text-white font-bold">↑ ↓</kbd>
-              <p className="mt-2 text-gray-300">Navigate blocks</p>
+        <div className="controls-section">
+          <h2 className="controls-title">⌨️ Keyboard Controls</h2>
+          <div className="controls-grid">
+            <div className="control-item">
+              <div className="control-key blue">↑ ↓</div>
+              <p className="control-label">Navigate blocks</p>
             </div>
-            <div className="bg-gray-800 p-4 rounded-xl">
-              <kbd className="bg-green-600 px-3 py-2 rounded text-white font-bold">Enter</kbd>
-              <p className="mt-2 text-gray-300">Speak block</p>
+            <div className="control-item">
+              <div className="control-key green">Enter</div>
+              <p className="control-label">Speak block</p>
             </div>
-            <div className="bg-gray-800 p-4 rounded-xl">
-              <kbd className="bg-red-600 px-3 py-2 rounded text-white font-bold">SHIFT</kbd>
-              <p className="mt-2 text-gray-300">Stop TTS</p>
+            <div className="control-item">
+              <div className="control-key red">SHIFT</div>
+              <p className="control-label">Stop TTS</p>
             </div>
-            <div className="bg-gray-800 p-4 rounded-xl">
-              <kbd className="bg-purple-600 px-3 py-2 rounded text-white font-bold">CTRL</kbd>
-              <p className="mt-2 text-gray-300">Replay</p>
+            <div className="control-item">
+              <div className="control-key purple">CTRL</div>
+              <p className="control-label">Replay</p>
             </div>
-            <div className="bg-gray-800 p-4 rounded-xl">
-              <kbd className="bg-yellow-600 px-3 py-2 rounded text-white font-bold">A</kbd>
-              <p className="mt-2 text-gray-300">Read all mode</p>
+            <div className="control-item">
+              <div className="control-key yellow">A</div>
+              <p className="control-label">Read all mode</p>
             </div>
-            <div className="bg-gray-800 p-4 rounded-xl">
-              <kbd className="bg-pink-600 px-3 py-2 rounded text-white font-bold">M</kbd>
-              <p className="mt-2 text-gray-300">AI summary</p>
+            <div className="control-item">
+              <div className="control-key pink">M</div>
+              <p className="control-label">AI summary</p>
             </div>
           </div>
         </div>
 
         {/* Footer with Back Button */}
-        <div className="text-center">
-          <div className="inline-flex items-center gap-3 bg-gray-800 px-6 py-4 rounded-xl border-2 border-gray-600">
+        <div className="reader-footer">
+          <div className="back-info">
             <ArrowLeft size={24} />
-            <span className="text-xl">Press</span>
-            <kbd className="bg-gray-700 px-4 py-2 rounded text-white font-bold text-xl">ESC</kbd>
-            <span className="text-xl">to go back to Blind Menu</span>
+            <span>Press</span>
+            <kbd className="back-key">ESC</kbd>
+            <span>to go back to Blind Menu</span>
           </div>
         </div>
 
