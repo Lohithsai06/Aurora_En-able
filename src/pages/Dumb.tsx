@@ -51,6 +51,19 @@ export default function Dumb() {
   const [showUrgencyPrompt, setShowUrgencyPrompt] = useState<boolean>(false);
   const [gestureRepeatCount, setGestureRepeatCount] = useState<{ [key: string]: number }>({});
   
+  // Chapter 8 - UI Polish & Performance State
+  const [darkMode, setDarkMode] = useState<boolean>(() => {
+    const saved = localStorage.getItem('dumb-dark-mode');
+    return saved === 'true';
+  });
+  const [cameraError, setCameraError] = useState<string | null>(null);
+  const [apiError, setApiError] = useState<string | null>(null);
+  const [browserSupport, setBrowserSupport] = useState({
+    camera: true,
+    speech: true,
+    mediaPipe: true
+  });
+  
   const webcamRef = useRef<Webcam>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const handsRef = useRef<Hands | null>(null);
@@ -61,6 +74,39 @@ export default function Dumb() {
   const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
   const emergencyIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const urgencyTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const lastProcessTimeRef = useRef<number>(0);
+
+  // Chapter 8 - Dark Mode Effect
+  useEffect(() => {
+    localStorage.setItem('dumb-dark-mode', darkMode.toString());
+    if (darkMode) {
+      document.documentElement.classList.add('dark-mode');
+    } else {
+      document.documentElement.classList.remove('dark-mode');
+    }
+  }, [darkMode]);
+
+  // Chapter 8 - Browser Support Check
+  useEffect(() => {
+    const checkSupport = () => {
+      const support = {
+        camera: !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia),
+        speech: 'speechSynthesis' in window,
+        mediaPipe: typeof Hands !== 'undefined'
+      };
+      
+      setBrowserSupport(support);
+      
+      if (!support.speech) {
+        console.warn('Speech synthesis not supported');
+      }
+      if (!support.camera) {
+        setCameraError('Camera access not available in this browser');
+      }
+    };
+    
+    checkSupport();
+  }, []);
 
   // Initialize available voices
   useEffect(() => {
@@ -304,16 +350,25 @@ export default function Dumb() {
       );
 
       if (!response.ok) {
-        throw new Error('Gemini API request failed');
+        const errorText = await response.text();
+        throw new Error(`Gemini API request failed: ${response.status} - ${errorText}`);
       }
 
       const data = await response.json();
       const aiText = data.candidates?.[0]?.content?.parts?.[0]?.text || inputText;
       
+      // Clear any previous errors
+      setApiError(null);
+      
       // Clean and format response
       return aiText.trim().replace(/[""]/g, '"');
     } catch (error) {
       console.error('Gemini API error:', error);
+      setApiError('AI service temporarily unavailable. Showing original text.');
+      
+      // Auto-clear error after 5 seconds
+      setTimeout(() => setApiError(null), 5000);
+      
       return inputText; // Fallback to basic text
     }
   };
@@ -783,6 +838,16 @@ Return ONLY the 3 alternative sentences, one per line, no numbering, no labels, 
 
   // Draw hand landmarks on canvas
   const onHandsResults = (results: Results) => {
+    // Chapter 8 - Throttle processing to 5 FPS for performance
+    const now = Date.now();
+    const timeSinceLastProcess = now - lastProcessTimeRef.current;
+    
+    if (timeSinceLastProcess < 200) { // 200ms = 5 FPS
+      return;
+    }
+    
+    lastProcessTimeRef.current = now;
+
     const canvas = canvasRef.current;
     if (!canvas) return;
 
@@ -829,18 +894,49 @@ Return ONLY the 3 alternative sentences, one per line, no numbering, no labels, 
 
   return (
     <div 
-      className={`dumb-page ${emergencyMode ? 'emergency-active' : ''} ${caregiverMode ? 'caregiver-mode' : ''}`}
+      className={`dumb-page ${emergencyMode ? 'emergency-active' : ''} ${caregiverMode ? 'caregiver-mode' : ''} ${darkMode ? 'dark-mode' : ''}`}
       role="main" 
       aria-label="Dumb communication page"
       tabIndex={0}
     >
-      <div className="dumb-container fade-in">
+      <div className="dumb-container fade-in glass-card">
+        {/* Chapter 8 - Dark Mode Toggle */}
+        <div className="dark-mode-toggle-container">
+          <button
+            className={`dark-mode-toggle focus-ring ${darkMode ? 'active' : ''}`}
+            onClick={() => setDarkMode(!darkMode)}
+            aria-label={darkMode ? 'Switch to light mode' : 'Switch to dark mode'}
+            aria-pressed={darkMode}
+          >
+            <span className="mode-icon">{darkMode ? '🌞' : '🌙'}</span>
+            <span className="mode-text">{darkMode ? 'Light Mode' : 'Dark Mode'}</span>
+          </button>
+        </div>
+
+        {/* Chapter 8 - Error Messages */}
+        {(cameraError || apiError) && (
+          <div className="error-banner" role="alert" aria-live="polite">
+            {cameraError && (
+              <div className="error-item camera-error">
+                <span className="error-icon">📷</span>
+                <span className="error-text">{cameraError}</span>
+              </div>
+            )}
+            {apiError && (
+              <div className="error-item api-error">
+                <span className="error-icon">⚠️</span>
+                <span className="error-text">{apiError}</span>
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Header Section */}
         <header className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-800 mb-2">
+          <h1 className="section-title text-3xl font-bold text-gray-800 mb-2">
             Smart Communication Board
           </h1>
-          <p className="text-lg text-gray-600">
+          <p className="section-subtitle text-lg text-gray-600">
             For non-verbal users
           </p>
         </header>
@@ -890,11 +986,16 @@ Return ONLY the 3 alternative sentences, one per line, no numbering, no labels, 
         </div>
 
         {/* Output Display Panel */}
-        <div className={`output-panel ${gestureConfirmed ? 'gesture-detected' : ''} ${aiLoading ? 'ai-loading' : ''} ${isSpeaking ? 'speaking' : ''}`}>
+        <div 
+          className={`output-panel glass-card soft-shadow pulse-border ${gestureConfirmed ? 'gesture-detected' : ''} ${aiLoading ? 'ai-loading' : ''} ${isSpeaking ? 'speaking' : ''}`}
+          role="region"
+          aria-label="Communication output display"
+        >
           <div 
             className="output-text"
             aria-live="polite"
             aria-atomic="true"
+            role="status"
           >
             {aiLoading ? (
               <div className="loading-indicator">
@@ -1014,7 +1115,38 @@ Return ONLY the 3 alternative sentences, one per line, no numbering, no labels, 
           </div>
         )}
 
-        {/* Chapter 7 - Status Indicators */}
+        {/* Chapter 8 - Enhanced Status Bar */}
+        <div className="status-bar glass-card soft-shadow">
+          <div className="status-item hover-rise" title="Camera status">
+            <span className={`status-indicator ${cameraActive ? 'active' : 'inactive'}`}></span>
+            <span className="status-label">
+              {cameraActive ? '✅ Camera Active' : '⏸️ Camera Paused'}
+            </span>
+          </div>
+          
+          <div className="status-item hover-rise" title="AI processing status">
+            <span className={`status-indicator ${aiMode ? 'active' : 'inactive'}`}></span>
+            <span className="status-label">
+              {aiMode ? '🤖 AI Enabled' : '🔧 Basic Mode'}
+            </span>
+          </div>
+          
+          <div className="status-item hover-rise" title="Voice output status">
+            <span className={`status-indicator ${voiceEnabled ? 'active' : 'inactive'}`}></span>
+            <span className="status-label">
+              {voiceEnabled ? '🔊 Voice On' : '🔇 Voice Off'}
+            </span>
+          </div>
+          
+          {emergencyMode && (
+            <div className="status-item emergency-item pulse-effect" title="Emergency mode active">
+              <span className="status-indicator active emergency"></span>
+              <span className="status-label">🚨 EMERGENCY</span>
+            </div>
+          )}
+        </div>
+
+        {/* Chapter 7 - Status Indicators (Legacy - keeping for compatibility) */}
         <div className="status-indicators">
           {emergencyMode && (
             <div className="status-badge emergency-badge" aria-live="assertive">
