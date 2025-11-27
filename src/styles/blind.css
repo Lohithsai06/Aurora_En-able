@@ -1,121 +1,301 @@
 .blind-page {
   min-height: 100vh;
-  background: #000000;
+  background: #0a0a0a;
   color: #ffffff;
-  padding: 3rem 2rem;
+  padding: 2rem;
   display: flex;
   align-items: center;
   justify-content: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.blind-bg-pattern {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: 
+    radial-gradient(circle at 20% 30%, rgba(59, 130, 246, 0.1) 0%, transparent 50%),
+    radial-gradient(circle at 80% 70%, rgba(139, 92, 246, 0.1) 0%, transparent 50%);
+  animation: backgroundPulse 10s ease-in-out infinite;
+}
+
+@keyframes backgroundPulse {
+  0%, 100% {
+    opacity: 0.5;
+  }
+  50% {
+    opacity: 0.8;
+  }
 }
 
 .blind-container {
-  max-width: 900px;
+  max-width: 1000px;
   width: 100%;
+  position: relative;
+  z-index: 1;
+  opacity: 0;
+  transform: translateY(20px);
+  transition: all 0.8s ease-out;
+}
+
+.blind-container.active {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.blind-header {
+  text-align: center;
+  margin-bottom: 4rem;
+}
+
+.blind-icon-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 80px;
+  height: 80px;
+  background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+  border-radius: 20px;
+  margin-bottom: 2rem;
+  box-shadow: 0 0 40px rgba(59, 130, 246, 0.6),
+              0 0 80px rgba(139, 92, 246, 0.4);
+  animation: iconGlow 2s ease-in-out infinite;
+}
+
+@keyframes iconGlow {
+  0%, 100% {
+    box-shadow: 0 0 40px rgba(59, 130, 246, 0.6),
+                0 0 80px rgba(139, 92, 246, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 60px rgba(59, 130, 246, 0.8),
+                0 0 100px rgba(139, 92, 246, 0.6);
+  }
 }
 
 .blind-title {
-  font-size: 4rem;
-  text-align: center;
-  margin-bottom: 2rem;
+  font-size: 3.5rem;
+  margin-bottom: 1.5rem;
   color: #ffffff;
-  text-shadow: 0 0 20px rgba(255, 255, 255, 0.5);
+  font-weight: 800;
+  text-shadow: 0 0 30px rgba(255, 255, 255, 0.3);
+  letter-spacing: -0.02em;
 }
 
 .blind-instruction {
-  font-size: 1.5rem;
-  text-align: center;
-  margin-bottom: 4rem;
-  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  font-size: 1.25rem;
+  margin-bottom: 1rem;
+  color: rgba(255, 255, 255, 0.8);
   font-weight: 500;
 }
 
-.blind-options {
+.blind-instruction span {
   display: flex;
-  flex-direction: column;
-  gap: 2rem;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.blind-options {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1.5rem;
   margin-bottom: 3rem;
 }
 
-.blind-button {
-  width: 100%;
+.blind-option-card {
+  background: rgba(255, 255, 255, 0.05);
+  border: 2px solid rgba(255, 255, 255, 0.1);
+  border-radius: 1.5rem;
+  padding: 2rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  min-height: 220px;
+  backdrop-filter: blur(10px);
+}
+
+.blind-option-card:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.2);
+  transform: translateY(-4px);
+}
+
+.blind-option-card.selected {
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.2) 0%, rgba(139, 92, 246, 0.2) 100%);
+  border: 3px solid #3b82f6;
+  box-shadow: 0 0 40px rgba(59, 130, 246, 0.5),
+              0 10px 30px rgba(0, 0, 0, 0.3);
+  transform: scale(1.05);
+}
+
+.option-number {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  width: 40px;
+  height: 40px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding: 2rem 3rem;
-  font-size: 1.75rem;
-  position: relative;
-  min-height: 100px;
-}
-
-.blind-button.selected {
-  box-shadow: 0 0 30px rgba(59, 130, 246, 0.8);
-  border: 3px solid #ffffff;
-}
-
-.button-index {
-  font-size: 2.5rem;
-  font-weight: 700;
-  opacity: 0.7;
-}
-
-.button-label {
-  flex: 1;
-  text-align: center;
-  font-weight: 600;
-}
-
-.button-indicator {
+  justify-content: center;
   font-size: 1.5rem;
-  animation: pulse 1s infinite;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.6);
 }
 
-@keyframes pulse {
+.blind-option-card.selected .option-number {
+  background: #3b82f6;
+  color: white;
+}
+
+.option-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 64px;
+  height: 64px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  color: white;
+  margin-bottom: 0.5rem;
+}
+
+.blind-option-card.selected .option-icon {
+  background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+  animation: iconBounce 0.6s ease-out;
+}
+
+@keyframes iconBounce {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.1);
+  }
+}
+
+.option-content {
+  flex: 1;
+}
+
+.option-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: white;
+  margin-bottom: 0.5rem;
+}
+
+.option-description {
+  font-size: 0.9375rem;
+  color: rgba(255, 255, 255, 0.7);
+  line-height: 1.5;
+  margin: 0;
+}
+
+.option-indicator {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #3b82f6;
+  font-weight: 600;
+  font-size: 1rem;
+  animation: indicatorPulse 1.5s ease-in-out infinite;
+}
+
+@keyframes indicatorPulse {
   0%, 100% {
     opacity: 1;
   }
   50% {
-    opacity: 0.5;
+    opacity: 0.6;
   }
 }
 
 .blind-help {
-  text-align: center;
-  margin-top: 3rem;
-  padding-top: 2rem;
-  border-top: 2px solid #333;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 1rem;
+  padding: 2rem;
+  backdrop-filter: blur(10px);
 }
 
-.blind-help p {
-  font-size: 1.25rem;
-  color: #999;
+.help-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1.5rem;
+}
+
+.help-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.9375rem;
+}
+
+.help-item svg {
+  flex-shrink: 0;
+  color: #3b82f6;
 }
 
 @media (max-width: 768px) {
+  .blind-page {
+    padding: 1.5rem;
+  }
+
+  .blind-icon-badge {
+    width: 64px;
+    height: 64px;
+  }
+
   .blind-title {
     font-size: 2.5rem;
   }
 
   .blind-instruction {
+    font-size: 1rem;
+    flex-direction: column;
+  }
+
+  .blind-options {
+    grid-template-columns: 1fr;
+    gap: 1.25rem;
+  }
+
+  .blind-option-card {
+    padding: 1.5rem;
+    min-height: 180px;
+  }
+
+  .option-title {
     font-size: 1.25rem;
   }
 
-  .blind-button {
-    padding: 1.5rem 2rem;
-    font-size: 1.25rem;
+  .option-icon {
+    width: 56px;
+    height: 56px;
   }
 
-  .button-index {
-    font-size: 2rem;
-  }
-
-  .button-indicator {
-    font-size: 1.25rem;
+  .help-grid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
   }
 }
 
 @media (max-width: 480px) {
   .blind-page {
-    padding: 2rem 1rem;
+    padding: 1rem;
   }
 
   .blind-title {
@@ -123,18 +303,34 @@
   }
 
   .blind-instruction {
-    font-size: 1rem;
-    margin-bottom: 2rem;
+    font-size: 0.875rem;
   }
 
-  .blind-button {
-    padding: 1rem 1.5rem;
-    font-size: 1rem;
-    flex-direction: column;
-    gap: 0.5rem;
+  .blind-option-card {
+    padding: 1.25rem;
   }
 
-  .button-indicator {
-    position: static;
+  .option-number {
+    width: 32px;
+    height: 32px;
+    font-size: 1.125rem;
+  }
+
+  .option-icon {
+    width: 48px;
+    height: 48px;
+  }
+
+  .option-icon svg {
+    width: 24px;
+    height: 24px;
+  }
+
+  .option-title {
+    font-size: 1.125rem;
+  }
+
+  .option-description {
+    font-size: 0.875rem;
   }
 }
