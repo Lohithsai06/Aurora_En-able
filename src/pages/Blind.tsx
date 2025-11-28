@@ -1,12 +1,14 @@
 import { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import BigButton from '../components/BigButton';
-import { BookOpen, Volume2, Globe, ArrowLeft, Eye, Keyboard, Zap } from 'lucide-react';
+import { BookOpen, Volume2, Globe, ArrowLeft, Eye, Keyboard, Zap, LogOut } from 'lucide-react';
 import '../styles/blind.css';
+import '../styles/landing.css';
 
 export default function Blind() {
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [isReady, setIsReady] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
   const navigate = useNavigate();
   const hasSpoken = useRef(false);
 
@@ -91,8 +93,15 @@ export default function Blind() {
       }, 500);
     }
 
+    const handleScroll = () => {
+      setScrolled(window.scrollY > 50);
+    };
+
+    window.addEventListener('scroll', handleScroll);
+
     return () => {
       window.speechSynthesis.cancel();
+      window.removeEventListener('scroll', handleScroll);
     };
   }, []);
 
@@ -142,8 +151,55 @@ export default function Blind() {
 
   return (
     <div className="blind-page">
-      {/* Animated background */}
-      <div className="blind-bg-pattern"></div>
+      {/* Navigation Bar - Match Dashboard */}
+      <nav className={`landing-navbar ${scrolled ? 'scrolled' : ''}`}>
+        <div className="navbar-container">
+          <div className="navbar-logo" onClick={() => navigate('/')} style={{ cursor: 'pointer' }}>
+            <div className="logo-icon">
+              <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M12 2L2 7L12 12L22 7L12 2Z" fill="url(#gradient1)" />
+                <path d="M2 17L12 22L22 17V12L12 17L2 12V17Z" fill="url(#gradient2)" />
+                <defs>
+                  <linearGradient id="gradient1" x1="2" y1="2" x2="22" y2="12" gradientUnits="userSpaceOnUse">
+                    <stop stopColor="#3b82f6" />
+                    <stop offset="1" stopColor="#8b5cf6" />
+                  </linearGradient>
+                  <linearGradient id="gradient2" x1="2" y1="12" x2="22" y2="22" gradientUnits="userSpaceOnUse">
+                    <stop stopColor="#8b5cf6" />
+                    <stop offset="1" stopColor="#06b6d4" />
+                  </linearGradient>
+                </defs>
+              </svg>
+            </div>
+            <span>En-able</span>
+          </div>
+          <div className="navbar-actions">
+            <button 
+              onClick={() => navigate('/dashboard')}
+              className="navbar-login-btn"
+              aria-label="Back to Dashboard"
+            >
+              <ArrowLeft size={18} />
+              <span>Dashboard</span>
+            </button>
+          </div>
+        </div>
+      </nav>
+
+      {/* Animated background - Same as Dashboard */}
+      <div className="dark-bg-decoration">
+        <div className="grid-overlay"></div>
+        <div className="gradient-orb orb-1"></div>
+        <div className="gradient-orb orb-2"></div>
+        <div className="gradient-orb orb-3"></div>
+        <div className="floating-particles">
+          <div className="particle"></div>
+          <div className="particle"></div>
+          <div className="particle"></div>
+          <div className="particle"></div>
+          <div className="particle"></div>
+        </div>
+      </div>
 
       <div className={`blind-container ${isReady ? 'active' : ''}`}>
         {/* Header Section */}

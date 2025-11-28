@@ -532,13 +532,7 @@ ${fullText}`;
       'theme-dark'
     } ${dyslexiaFont ? 'dyslexia-font' : ''}`}>
       {/* Animated Background */}
-      <div className="reader-bg">
-        <div className="reader-particle"></div>
-        <div className="reader-particle"></div>
-        <div className="reader-particle"></div>
-        <div className="reader-particle"></div>
-        <div className="reader-particle"></div>
-      </div>
+      <div className="reader-bg"></div>
 
       {/* Aria-live announcer for screen readers */}
       <div aria-live="polite" className="sr-only">

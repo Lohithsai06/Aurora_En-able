@@ -1,13 +1,15 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import CardButton from '../components/CardButton';
-import { Ear, MessageSquare, Brain, Eye, Sparkles, Clock, Users, Zap } from 'lucide-react';
+import { Ear, MessageSquare, Brain, Eye, Sparkles, Clock, Users, Zap, LogOut, Sun, Cloud, Sunset, Moon } from 'lucide-react';
+import '../styles/landing.css';
 import '../styles/dashboard.css';
 
 export default function Dashboard() {
   const [userName, setUserName] = useState('User');
   const [currentTime, setCurrentTime] = useState(new Date());
   const [isVisible, setIsVisible] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -16,7 +18,7 @@ export default function Dashboard() {
       navigate('/login');
     } else {
       const userData = JSON.parse(user);
-      setUserName(userData.name || userData.email);
+      setUserName(userData.displayName || userData.name || userData.email);
     }
     
     setIsVisible(true);
@@ -26,15 +28,30 @@ export default function Dashboard() {
       setCurrentTime(new Date());
     }, 60000);
 
-    return () => clearInterval(timer);
+    // Handle scroll
+    const handleScroll = () => {
+      setScrolled(window.scrollY > 50);
+    };
+
+    window.addEventListener('scroll', handleScroll);
+
+    return () => {
+      clearInterval(timer);
+      window.removeEventListener('scroll', handleScroll);
+    };
   }, [navigate]);
+
+  const handleLogout = () => {
+    localStorage.removeItem('user');
+    navigate('/login');
+  };
 
   const getGreeting = () => {
     const hour = currentTime.getHours();
-    if (hour < 12) return { text: 'Good Morning', emoji: '☀️', message: 'Start your day with accessibility' };
-    if (hour < 17) return { text: 'Good Afternoon', emoji: '🌤️', message: 'Making the web accessible for everyone' };
-    if (hour < 21) return { text: 'Good Evening', emoji: '🌆', message: 'Evening productivity at your fingertips' };
-    return { text: 'Good Night', emoji: '🌙', message: 'Accessibility never sleeps' };
+    if (hour < 12) return { text: 'Good Morning', icon: Sun, message: 'Start your day with accessibility' };
+    if (hour < 17) return { text: 'Good Afternoon', icon: Cloud, message: 'Making the web accessible for everyone' };
+    if (hour < 21) return { text: 'Good Evening', icon: Sunset, message: 'Evening productivity at your fingertips' };
+    return { text: 'Good Night', icon: Moon, message: 'Accessibility never sleeps' };
   };
 
   const formatTime = () => {
@@ -56,12 +73,55 @@ export default function Dashboard() {
   const greeting = getGreeting();
 
   return (
-    <div className="dashboard-page">
-      {/* Animated background elements */}
-      <div className="dashboard-bg">
-        <div className="bg-circle circle-1"></div>
-        <div className="bg-circle circle-2"></div>
-        <div className="bg-circle circle-3"></div>
+    <div className="dashboard-page-dark">
+      {/* Navigation Bar */}
+      <nav className={`landing-navbar ${scrolled ? 'scrolled' : ''}`}>
+        <div className="navbar-container">
+          <div className="navbar-logo" onClick={() => navigate('/')} style={{ cursor: 'pointer' }}>
+            <div className="logo-icon">
+              <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M12 2L2 7L12 12L22 7L12 2Z" fill="url(#gradient1)" />
+                <path d="M2 17L12 22L22 17V12L12 17L2 12V17Z" fill="url(#gradient2)" />
+                <defs>
+                  <linearGradient id="gradient1" x1="2" y1="2" x2="22" y2="12" gradientUnits="userSpaceOnUse">
+                    <stop stopColor="#3b82f6" />
+                    <stop offset="1" stopColor="#8b5cf6" />
+                  </linearGradient>
+                  <linearGradient id="gradient2" x1="2" y1="12" x2="22" y2="22" gradientUnits="userSpaceOnUse">
+                    <stop stopColor="#8b5cf6" />
+                    <stop offset="1" stopColor="#06b6d4" />
+                  </linearGradient>
+                </defs>
+              </svg>
+            </div>
+            <span>En-able</span>
+          </div>
+          <div className="navbar-actions">
+            <button 
+              onClick={handleLogout}
+              className="navbar-login-btn"
+              aria-label="Logout"
+            >
+              <LogOut size={18} />
+              <span>Logout</span>
+            </button>
+          </div>
+        </div>
+      </nav>
+
+      {/* Animated background - Same as Landing */}
+      <div className="dark-bg-decoration">
+        <div className="grid-overlay"></div>
+        <div className="gradient-orb orb-1"></div>
+        <div className="gradient-orb orb-2"></div>
+        <div className="gradient-orb orb-3"></div>
+        <div className="floating-particles">
+          <div className="particle"></div>
+          <div className="particle"></div>
+          <div className="particle"></div>
+          <div className="particle"></div>
+          <div className="particle"></div>
+        </div>
       </div>
 
       <div className={`dashboard-container ${isVisible ? 'visible' : ''}`}>
@@ -70,7 +130,7 @@ export default function Dashboard() {
           <div className="hero-content">
             <div className="greeting-section">
               <div className="greeting-badge">
-                <span className="greeting-emoji">{greeting.emoji}</span>
+                <greeting.icon className="greeting-emoji" size={28} />
                 <span className="greeting-text">{greeting.text}</span>
               </div>
               

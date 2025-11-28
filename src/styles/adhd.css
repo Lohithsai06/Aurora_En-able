@@ -1,25 +1,46 @@
 .adhd-page {
   min-height: 100vh;
-  background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
-  padding: 4rem 2rem;
+  background: linear-gradient(135deg, #0a0e27 0%, #1a1a2e 50%, #16213e 100%);
+  padding: 2rem 2rem 2rem;
+  position: relative;
+  overflow-x: hidden;
+}
+
+/* Make navbar transparent on adhd page */
+.adhd-page .landing-navbar {
+  background: transparent !important;
+  backdrop-filter: none !important;
+  border-bottom: none !important;
+  box-shadow: none !important;
+}
+
+.adhd-page .landing-navbar.scrolled {
+  background: transparent !important;
+  backdrop-filter: none !important;
+  border-bottom: none !important;
+  box-shadow: none !important;
 }
 
 .adhd-container {
-  max-width: 1000px;
+  max-width: 1200px;
   margin: 0 auto;
+  position: relative;
+  z-index: 10;
+  padding-top: 2rem;
 }
 
 .adhd-title {
   font-size: 2.5rem;
   text-align: center;
-  color: var(--text);
+  color: #ffffff;
   margin-bottom: 0.5rem;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.5), 0 0 30px rgba(59, 130, 246, 0.5);
 }
 
 .adhd-subtitle {
   font-size: 1.25rem;
   text-align: center;
-  color: var(--text-light);
+  color: #cbd5e1;
   margin-bottom: 3rem;
 }
 
@@ -31,10 +52,12 @@
 
 .pomodoro-section,
 .tasks-section {
-  background: white;
+  background: rgba(30, 41, 59, 0.7);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(59, 130, 246, 0.3);
   padding: 2rem;
-  border-radius: 1rem;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+  border-radius: 1.5rem;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
 }
 
 .section-header {
@@ -44,12 +67,18 @@
   margin-bottom: 1rem;
 }
 
+.section-header h2 {
+  color: #ffffff;
+  font-size: 1.75rem;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
 .section-icon {
-  color: var(--primary);
+  color: #3b82f6;
 }
 
 .section-description {
-  color: var(--text-light);
+  color: #cbd5e1;
   margin-bottom: 2rem;
 }
 
@@ -63,11 +92,11 @@
   width: 200px;
   height: 200px;
   border-radius: 50%;
-  background: linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%);
+  background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 10px 30px rgba(59, 130, 246, 0.3);
+  box-shadow: 0 10px 30px rgba(59, 130, 246, 0.6), 0 0 60px rgba(139, 92, 246, 0.4);
 }
 
 .timer-text {
@@ -120,31 +149,39 @@
 .task-input {
   flex: 1;
   padding: 0.75rem 1rem;
-  border: 2px solid var(--border);
+  background: rgba(15, 23, 42, 0.6);
+  border: 2px solid rgba(59, 130, 246, 0.3);
   border-radius: 0.5rem;
   font-size: 1rem;
+  color: #ffffff;
   transition: border-color 0.2s ease;
+}
+
+.task-input::placeholder {
+  color: #94a3b8;
 }
 
 .task-input:focus {
   outline: none;
-  border-color: var(--primary);
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
 }
 
 .add-task-button {
   padding: 0.75rem 1.5rem;
-  background: var(--primary);
+  background: linear-gradient(135deg, #3b82f6, #8b5cf6);
   color: white;
   border: none;
   border-radius: 0.5rem;
   font-weight: 600;
   cursor: pointer;
-  transition: background 0.2s ease;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 15px rgba(59, 130, 246, 0.4);
 }
 
 .add-task-button:hover {
-  background: var(--primary-dark);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 25px rgba(59, 130, 246, 0.6);
 }
 
 .task-list {
@@ -159,37 +196,41 @@
   align-items: center;
   justify-content: space-between;
   padding: 1rem;
-  background: var(--background-alt);
+  background: rgba(59, 130, 246, 0.1);
+  border: 1px solid rgba(59, 130, 246, 0.2);
   border-radius: 0.5rem;
-  transition: background 0.2s ease;
+  transition: all 0.2s ease;
 }
 
 .task-item:hover {
-  background: #e5e7eb;
+  background: rgba(59, 130, 246, 0.2);
+  border-color: rgba(59, 130, 246, 0.4);
+  transform: translateX(4px);
 }
 
 .task-text {
   flex: 1;
-  color: var(--text);
+  color: #ffffff;
+  font-weight: 500;
 }
 
 .remove-task-button {
   width: 32px;
   height: 32px;
   border-radius: 50%;
-  background: var(--success);
-  color: white;
-  border: none;
+  background: rgba(16, 185, 129, 0.3);
+  border: 1px solid rgba(16, 185, 129, 0.5);
+  color: #10b981;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 1.25rem;
-  transition: background 0.2s ease, transform 0.2s ease;
+  transition: all 0.2s ease;
 }
 
 .remove-task-button:hover {
-  background: #059669;
+  background: rgba(16, 185, 129, 0.5);
   transform: scale(1.1);
 }
 
@@ -200,10 +241,31 @@
 }
 
 .feature-card {
-  background: white;
+  background: rgba(59, 130, 246, 0.1);
+  border: 1px solid rgba(59, 130, 246, 0.3);
   padding: 1.5rem;
   border-radius: 1rem;
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+  transition: all 0.3s ease;
+  backdrop-filter: blur(10px);
+}
+
+.feature-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 15px 40px rgba(59, 130, 246, 0.4);
+  border-color: rgba(59, 130, 246, 0.5);
+}
+
+.feature-card h3 {
+  font-size: 1.25rem;
+  margin-bottom: 0.5rem;
+  color: #ffffff;
+}
+
+.feature-card p {
+  color: #cbd5e1;
+  line-height: 1.6;
+}
   transition: transform 0.3s ease;
 }
 
