@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AccessNow Icons - Auto Download</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .container {
+      background: white;
+      border-radius: 12px;
+      padding: 40px;
+      max-width: 600px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+      text-align: center;
+    }
+    h1 { color: #1f2937; margin-bottom: 10px; }
+    .subtitle { color: #6b7280; margin-bottom: 30px; }
+    .preview { display: flex; gap: 20px; justify-content: center; margin: 30px 0; flex-wrap: wrap; }
+    .preview-item { text-align: center; }
+    .preview-item img { 
+      border: 2px solid #e5e7eb; 
+      border-radius: 8px; 
+      background: #f9fafb;
+      padding: 10px;
+    }
+    .icon-label { margin-top: 8px; font-size: 12px; color: #6b7280; font-weight: 600; }
+    .btn {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      padding: 15px 30px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 16px;
+      font-weight: 600;
+      margin: 10px;
+      transition: transform 0.2s;
+    }
+    .btn:hover { transform: translateY(-2px); }
+    .status {
+      background: #d1fae5;
+      border: 1px solid #6ee7b7;
+      padding: 15px;
+      border-radius: 6px;
+      color: #065f46;
+      margin: 20px 0;
+      display: none;
+    }
+    .instructions {
+      background: #eff6ff;
+      border: 1px solid #93c5fd;
+      padding: 20px;
+      border-radius: 8px;
+      margin-top: 20px;
+      text-align: left;
+    }
+    .instructions h3 { color: #1e40af; margin-top: 0; }
+    code { background: #f3f4f6; padding: 2px 6px; border-radius: 3px; font-size: 13px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🎨 AccessNow Icons Ready!</h1>
+    <p class="subtitle">Your extension icons have been generated</p>
+
+    <div id="status" class="status"></div>
+
+    <div class="preview" id="preview"></div>
+
+    <div>
+      <button class="btn" onclick="downloadAll()">📥 Download All Icons (Individually)</button>
+      <button class="btn" onclick="saveInstructions()">📋 Copy File Paths</button>
+    </div>
+
+    <div class="instructions">
+      <h3>📝 How to Use These Icons</h3>
+      <ol>
+        <li>Click "Download All Icons" button above</li>
+        <li>Four PNG files will download to your Downloads folder</li>
+        <li>Move all 4 files to: <code>C:\Users\Admin\Desktop\Enable\icons\</code></li>
+        <li>Reload your extension in Chrome (<code>chrome://extensions/</code>)</li>
+        <li>Your extension will now have proper icons! ✨</li>
+      </ol>
+      <p><strong>Note:</strong> Some browsers may block multiple downloads. If so, allow them when prompted.</p>
+    </div>
+  </div>
+
+  <script>
+    const icons = {};
+    
+    function generateIcon(size) {
+      const canvas = document.createElement('canvas');
+      canvas.width = size;
+      canvas.height = size;
+      const ctx = canvas.getContext('2d');
+
+      // Draw gradient background
+      const gradient = ctx.createLinearGradient(0, 0, size, size);
+      gradient.addColorStop(0, '#667eea');
+      gradient.addColorStop(1, '#764ba2');
+      ctx.fillStyle = gradient;
+      
+      // Rounded rectangle background
+      const radius = size * 0.2;
+      ctx.beginPath();
+      ctx.moveTo(radius, 0);
+      ctx.lineTo(size - radius, 0);
+      ctx.quadraticCurveTo(size, 0, size, radius);
+      ctx.lineTo(size, size - radius);
+      ctx.quadraticCurveTo(size, size, size - radius, size);
+      ctx.lineTo(radius, size);
+      ctx.quadraticCurveTo(0, size, 0, size - radius);
+      ctx.lineTo(0, radius);
+      ctx.quadraticCurveTo(0, 0, radius, 0);
+      ctx.closePath();
+      ctx.fill();
+
+      // Draw white circle in center
+      const centerX = size / 2;
+      const centerY = size / 2;
+      const circleRadius = size * 0.35;
+      
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
+      ctx.beginPath();
+      ctx.arc(centerX, centerY, circleRadius, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Draw "AN" text or brain symbol
+      ctx.fillStyle = '#667eea';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      
+      if (size >= 48) {
+        // For larger icons, draw stylized brain/accessibility symbol
+        ctx.font = `bold ${size * 0.35}px Arial`;
+        ctx.fillText('A', centerX - size * 0.08, centerY);
+        ctx.fillStyle = '#764ba2';
+        ctx.fillText('N', centerX + size * 0.08, centerY);
+      } else {
+        // For smaller icons, simpler design
+        ctx.font = `bold ${size * 0.45}px Arial`;
+        ctx.fillText('A', centerX - size * 0.1, centerY);
+        ctx.fillStyle = '#764ba2';
+        ctx.font = `bold ${size * 0.35}px Arial`;
+        ctx.fillText('N', centerX + size * 0.12, centerY + size * 0.02);
+      }
+
+      // Add subtle shadow for depth
+      ctx.shadowColor = 'rgba(0, 0, 0, 0.1)';
+      ctx.shadowBlur = size * 0.05;
+      ctx.shadowOffsetY = size * 0.02;
+
+      return canvas;
+    }
+
+    // Generate all icon sizes
+    [16, 32, 48, 128].forEach(size => {
+      const canvas = generateIcon(size);
+      icons[size] = canvas;
+
+      // Create preview
+      const previewItem = document.createElement('div');
+      previewItem.className = 'preview-item';
+      
+      const img = document.createElement('img');
+      img.src = canvas.toDataURL();
+      img.width = size > 32 ? 64 : size * 2;
+      img.height = size > 32 ? 64 : size * 2;
+      img.style.imageRendering = size <= 32 ? 'pixelated' : 'auto';
+      
+      const label = document.createElement('div');
+      label.className = 'icon-label';
+      label.textContent = `icon${size}.png`;
+      
+      previewItem.appendChild(img);
+      previewItem.appendChild(label);
+      document.getElementById('preview').appendChild(previewItem);
+    });
+
+    function downloadIcon(size) {
+      const canvas = icons[size];
+      canvas.toBlob(blob => {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `icon${size}.png`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      }, 'image/png');
+    }
+
+    function downloadAll() {
+      const status = document.getElementById('status');
+      status.textContent = '⏳ Downloading icons...';
+      status.style.display = 'block';
+      
+      let downloaded = 0;
+      [16, 32, 48, 128].forEach((size, index) => {
+        setTimeout(() => {
+          downloadIcon(size);
+          downloaded++;
+          if (downloaded === 4) {
+            status.textContent = '✅ All 4 icons downloaded! Check your Downloads folder.';
+            setTimeout(() => {
+              status.textContent += ' Now move them to the icons/ folder.';
+            }, 1000);
+          }
+        }, index * 500); // Stagger downloads to avoid browser blocking
+      });
+    }
+
+    function saveInstructions() {
+      const text = `AccessNow Extension Icons - Installation
+
+Downloaded files:
+- icon16.png
+- icon32.png
+- icon48.png
+- icon128.png
+
+Installation steps:
+1. Find the 4 downloaded PNG files in your Downloads folder
+2. Move them to: C:\\Users\\Admin\\Desktop\\Enable\\icons\\
+3. Go to chrome://extensions/
+4. Find "AccessNow - ADHD Text Simplifier"
+5. Click the refresh/reload icon
+6. Done! Your extension now has proper icons.`;
+
+      navigator.clipboard.writeText(text).then(() => {
+        alert('✅ Instructions copied to clipboard!');
+      }).catch(() => {
+        alert('Instructions:\n\n' + text);
+      });
+    }
+
+    // Show ready message
+    document.getElementById('status').textContent = '✅ Icons generated and ready to download!';
+    document.getElementById('status').style.display = 'block';
+  </script>
+</body>
+</html>

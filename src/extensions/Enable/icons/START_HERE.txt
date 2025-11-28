@@ -1,0 +1,63 @@
+# ⚡ QUICK FIX: Generate Icons Now!
+
+## 🚀 Fastest Method (Double-Click)
+
+### **Windows:**
+1. **Double-click:** `GENERATE_ICONS.bat`
+2. Browser opens automatically
+3. Click "Download All Icons"
+4. Move 4 PNG files from Downloads to here
+5. Done! ✅
+
+### **Or use PowerShell:**
+```powershell
+.\generate-icons.ps1
+```
+
+### **Or use Python (if installed):**
+```powershell
+pip install Pillow
+python generate_icons.py
+```
+
+---
+
+## 📁 Files You Need
+
+After generation, this folder should contain:
+- ✅ `icon16.png` (16x16 pixels)
+- ✅ `icon32.png` (32x32 pixels)
+- ✅ `icon48.png` (48x48 pixels)
+- ✅ `icon128.png` (128x128 pixels)
+
+---
+
+## 🔧 After Generating Icons
+
+1. Go to: `chrome://extensions/`
+2. Find: "AccessNow - ADHD Text Simplifier"
+3. Click the reload button (🔄)
+4. Icons should now appear! ✨
+
+---
+
+## 🐛 Troubleshooting
+
+**Icons not downloading from browser?**
+- Allow multiple downloads when Chrome asks
+- Check your Downloads folder
+- Files are named: icon16.png, icon32.png, icon48.png, icon128.png
+
+**Python script not working?**
+- Install Pillow: `pip install Pillow`
+- Or just use the HTML generator instead
+
+**Batch file not working?**
+- Right-click `generate-icons-standalone.html` 
+- Choose "Open with" → Chrome
+
+---
+
+## ✅ That's It!
+
+Once you have the 4 PNG files in this folder, reload your extension and you're done!

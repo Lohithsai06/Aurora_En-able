@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AccessNow Extension - Test Page</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      line-height: 1.6;
+      color: #333;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 40px 20px;
+    }
+
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 12px;
+      padding: 40px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    }
+
+    h1 {
+      color: #1f2937;
+      margin-bottom: 10px;
+      font-size: 36px;
+    }
+
+    .subtitle {
+      color: #6b7280;
+      margin-bottom: 30px;
+      font-size: 18px;
+    }
+
+    .section {
+      margin-bottom: 40px;
+      padding: 20px;
+      background: #f9fafb;
+      border-radius: 8px;
+      border-left: 4px solid #667eea;
+    }
+
+    .section h2 {
+      color: #374151;
+      margin-bottom: 15px;
+      font-size: 24px;
+    }
+
+    .section h3 {
+      color: #4b5563;
+      margin-top: 20px;
+      margin-bottom: 10px;
+      font-size: 18px;
+    }
+
+    p {
+      margin-bottom: 15px;
+      color: #1f2937;
+    }
+
+    .highlight {
+      background: #fef3c7;
+      padding: 2px 6px;
+      border-radius: 3px;
+      font-weight: 500;
+    }
+
+    .test-text {
+      background: white;
+      padding: 20px;
+      border-radius: 6px;
+      margin: 15px 0;
+      border: 2px dashed #cbd5e1;
+    }
+
+    .instructions {
+      background: #eff6ff;
+      border: 1px solid #93c5fd;
+      padding: 20px;
+      border-radius: 8px;
+      margin-bottom: 30px;
+    }
+
+    .instructions h3 {
+      color: #1e40af;
+      margin-top: 0;
+    }
+
+    .instructions ol {
+      margin-left: 20px;
+      color: #1f2937;
+    }
+
+    .instructions li {
+      margin-bottom: 8px;
+    }
+
+    .complex-text {
+      font-size: 15px;
+      line-height: 1.8;
+    }
+
+    .simple-text {
+      font-size: 16px;
+      line-height: 1.6;
+    }
+
+    code {
+      background: #f3f4f6;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-family: 'Courier New', monospace;
+      font-size: 14px;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 4px 12px;
+      background: #667eea;
+      color: white;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 600;
+      margin-right: 8px;
+    }
+
+    .footer {
+      text-align: center;
+      margin-top: 40px;
+      padding-top: 20px;
+      border-top: 2px solid #e5e7eb;
+      color: #6b7280;
+    }
+
+    .success {
+      background: #d1fae5;
+      border: 1px solid #6ee7b7;
+      padding: 15px;
+      border-radius: 6px;
+      color: #065f46;
+      margin: 20px 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🧠 AccessNow Extension Test Page</h1>
+    <p class="subtitle">Use this page to test the text simplification feature</p>
+
+    <div class="instructions">
+      <h3>📝 How to Test</h3>
+      <ol>
+        <li>Make sure the AccessNow extension is installed and enabled</li>
+        <li>Select any text below (click and drag to highlight)</li>
+        <li>Right-click on the selected text</li>
+        <li>Choose <strong>"Simplify Text"</strong> from the context menu</li>
+        <li>A modal will appear showing the original and simplified versions</li>
+        <li>Try the copy button and "Explain with AI" feature</li>
+      </ol>
+    </div>
+
+    <div class="section">
+      <h2><span class="badge">TEST 1</span>Complex Technical Text</h2>
+      <div class="test-text complex-text">
+        <p>The implementation of machine learning algorithms necessitates substantial computational resources and sophisticated infrastructure. Consequently, organizations must acquire adequate hardware and utilize appropriate frameworks to facilitate the training and deployment of neural networks. Furthermore, the optimization of hyperparameters requires extensive experimentation and domain expertise to achieve satisfactory performance metrics.</p>
+        <p>Subsequently, practitioners must demonstrate proficiency in mathematical concepts including linear algebra, calculus, and probability theory. Additionally, they should possess the capability to implement various optimization techniques such as gradient descent and its numerous variants, which are instrumental in minimizing loss functions during the training process.</p>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2><span class="badge">TEST 2</span>Academic Writing</h2>
+      <div class="test-text complex-text">
+        <p>Photosynthesis is a fundamental biological process whereby plants, algae, and certain bacteria convert light energy, predominantly from solar radiation, into chemical energy stored in glucose molecules. This remarkable biochemical transformation occurs primarily within specialized organelles called chloroplasts, which contain the photosynthetic pigment chlorophyll that facilitates light absorption.</p>
+        <p>The process can be delineated into two distinct phases: the light-dependent reactions and the light-independent reactions, commonly referred to as the Calvin cycle. The former transpires in the thylakoid membranes and generates ATP and NADPH, while the latter occurs in the stroma and utilizes these energy carriers to synthesize carbohydrates from carbon dioxide.</p>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2><span class="badge">TEST 3</span>Legal/Formal Text</h2>
+      <div class="test-text complex-text">
+        <p>The aforementioned party hereby agrees to indemnify and hold harmless the contracting entity from any and all claims, damages, liabilities, costs, and expenses, including reasonable attorneys' fees, arising out of or resulting from the performance or non-performance of the obligations set forth herein. Notwithstanding the foregoing, such indemnification shall not extend to circumstances wherein the damages are attributable to the gross negligence or willful misconduct of the indemnified party.</p>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2><span class="badge">TEST 4</span>Simple Text (Control Test)</h2>
+      <div class="test-text simple-text">
+        <p>This is a simple text. It has short sentences. The words are easy to understand. You can test the extension on this text too. It should work, but the simplification might not change much because it's already simple.</p>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2><span class="badge">TEST 5</span>Mixed Complexity</h2>
+      <div class="test-text complex-text">
+        <p>Climate change is happening. Scientists utilize sophisticated climate models to predict future environmental conditions. These models incorporate numerous variables including atmospheric composition, ocean temperatures, and land use patterns. Nevertheless, the inherent complexity of Earth's climate system introduces substantial uncertainty into long-term projections.</p>
+        <p>People can help. We can use less energy. We can also utilize renewable energy sources such as solar and wind power. Additionally, implementing energy-efficient technologies and reducing consumption can substantially mitigate anthropogenic greenhouse gas emissions.</p>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2><span class="badge">TEST 6</span>Concept Explanation Test</h2>
+      <div class="test-text complex-text">
+        <p>Quantum computing leverages the principles of quantum mechanics to process information in fundamentally different ways compared to classical computers. While conventional computers utilize bits that exist in binary states (0 or 1), quantum computers employ quantum bits or "qubits" that can exist in superposition states, simultaneously representing multiple values. This phenomenon, coupled with quantum entanglement, enables quantum computers to perform certain calculations exponentially faster than their classical counterparts, particularly for problems involving optimization, cryptography, and molecular simulation.</p>
+      </div>
+      <p><em>💡 Tip: After simplifying this text, try the "Explain with AI" button to see how the chatbot explains quantum computing!</em></p>
+    </div>
+
+    <div class="success">
+      <strong>✅ Extension Working Correctly?</strong>
+      <p>If you can successfully simplify any of the texts above and see the side-by-side modal, your extension is working properly! Try different texts to see how the simplification adapts.</p>
+    </div>
+
+    <div class="section">
+      <h2>🔍 Additional Testing Tips</h2>
+      <h3>Test the Popup:</h3>
+      <p>Click the extension icon in your toolbar to:</p>
+      <ul>
+        <li>Toggle the simplification feature on/off</li>
+        <li>View usage statistics</li>
+        <li>Access quick actions</li>
+        <li>Open the AI chatbot sidebar</li>
+      </ul>
+
+      <h3>Test the Chatbot:</h3>
+      <p>Open the sidebar and try asking:</p>
+      <ul>
+        <li>"Explain quantum computing in simple terms"</li>
+        <li>"What is machine learning?"</li>
+        <li>"How does photosynthesis work?"</li>
+        <li>Or paste any complex text and ask for an explanation</li>
+      </ul>
+
+      <h3>Test Edge Cases:</h3>
+      <ul>
+        <li>Select very long text (multiple paragraphs)</li>
+        <li>Select very short text (single word)</li>
+        <li>Try on different websites</li>
+        <li>Toggle the feature off and try to simplify text</li>
+        <li>Test with no text selected</li>
+      </ul>
+    </div>
+
+    <div class="section">
+      <h2>🐛 Troubleshooting</h2>
+      <p>If something doesn't work:</p>
+      <ol>
+        <li>Press <code>F12</code> to open developer console</li>
+        <li>Check for any error messages</li>
+        <li>Verify the extension is enabled in <code>chrome://extensions/</code></li>
+        <li>Try refreshing this page</li>
+        <li>Try reloading the extension</li>
+      </ol>
+    </div>
+
+    <div class="footer">
+      <p><strong>AccessNow - Making the web more accessible for everyone</strong></p>
+      <p>Version 1.0.0 | Built with ❤️ for the ADHD community</p>
+    </div>
+  </div>
+
+  <script>
+    console.log('✅ AccessNow test page loaded');
+    console.log('💡 Select any text above and right-click to test the extension');
+    
+    // Log when text is selected
+    document.addEventListener('selectionchange', () => {
+      const selection = window.getSelection();
+      if (selection.toString().length > 0) {
+        console.log('📝 Text selected:', selection.toString().substring(0, 50) + '...');
+      }
+    });
+  </script>
+</body>
+</html>

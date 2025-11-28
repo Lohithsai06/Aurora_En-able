@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Enable - AI Text Simplifier</title>
+  <link rel="stylesheet" href="sidebar.css">
+</head>
+<body>
+  <div class="sidebar-container">
+    <!-- Accessibility Mode Selector -->
+    <section class="mode-selector-section">
+      <div class="mode-selector-wrapper">
+        <label for="accessibilityMode" class="mode-label">
+          <span>Your Mode:</span>
+        </label>
+        <select id="accessibilityMode" class="mode-select">
+          <option value="adhd" selected>ADHD Support</option>
+          <option value="dyslexic">Dyslexic Support</option>
+          <option value="autism">Autism Support</option>
+          <option value="neurodivergent">Neurodivergent</option>
+        </select>
+        <div class="mode-indicator"></div>
+      </div>
+    </section>
+
+    <!-- Chat Interface -->
+    <section class="chat-section" id="chatSection">
+      <!-- Chat History -->
+      <div class="chat-history" id="chatHistory">
+      </div>
+    </section>
+
+    <!-- Settings Panel -->
+    <section class="settings-section hidden" id="settingsSection">
+      <div class="settings-header">
+        <h2>Settings</h2>
+        <p class="settings-subtitle">Customize your experience</p>
+      </div>
+      
+      <div class="settings-grid">
+        <div class="setting-card">
+          <label for="explanationStyle">Explanation Style:</label>
+          <select id="explanationStyle" class="setting-select">
+            <option value="simple">Simple (Ages 8-12)</option>
+            <option value="moderate" selected>Moderate (Ages 13-18)</option>
+            <option value="detailed">Detailed (Adult)</option>
+          </select>
+        </div>
+        
+        <div class="setting-card">
+          <label for="responseLength">Response Length:</label>
+          <select id="responseLength" class="setting-select">
+            <option value="brief">Brief</option>
+            <option value="medium" selected>Medium</option>
+            <option value="detailed">Detailed</option>
+          </select>
+        </div>
+        
+        <div class="setting-card checkbox-card">
+          <div class="checkbox-wrapper">
+            <input type="checkbox" id="includeExamples" checked>
+            <label for="includeExamples">Include examples</label>
+          </div>
+        </div>
+        
+        <div class="setting-card checkbox-card">
+          <div class="checkbox-wrapper">
+            <input type="checkbox" id="useAnalogies" checked>
+            <label for="useAnalogies">Use analogies & metaphors</label>
+          </div>
+        </div>
+      </div>
+      
+      <div class="api-section">
+        <div class="api-header">
+          <h3>API Key (Optional)</h3>
+          <div class="info-badge">Advanced</div>
+        </div>
+        <p class="api-description">
+          Using our shared key by default. Want unlimited usage? Add your own!
+          <a href="https://makersuite.google.com/app/apikey" target="_blank" class="api-link">Get Free Key →</a>
+        </p>
+        
+        <div class="api-input-group">
+          <input 
+            type="password" 
+            id="apiKeyInput" 
+            class="api-key-input" 
+            placeholder="Paste your Gemini API key here..."
+            autocomplete="off"
+          >
+          <button class="toggle-visibility-btn" id="toggleVisibilityBtn" title="Show/Hide">
+            👁️
+          </button>
+        </div>
+        
+        <div class="api-actions">
+          <button class="btn btn-primary" id="saveApiKeyBtn">Save Key</button>
+          <button class="btn btn-secondary" id="clearApiKeyBtn">Clear</button>
+        </div>
+        
+        <div class="api-key-status" id="apiKeyStatus"></div>
+      </div>
+      
+      <button class="btn btn-save-settings" id="saveSettingsBtn">
+        Save All Settings
+      </button>
+    </section>
+
+    <!-- Input Area with fun styling -->
+    <div class="chat-input-area">
+      <div class="input-wrapper">
+        <textarea 
+          id="chatInput" 
+          class="chat-input" 
+          placeholder="Ask me anything..."
+          rows="1"
+        ></textarea>
+        <button class="send-btn" id="sendBtn" title="Send message">
+          <span class="send-icon">➤</span>
+        </button>
+        <button class="stop-btn" id="stopBtn" title="Stop generating" style="display: none;">
+          <span class="stop-icon">■</span>
+        </button>
+      </div>
+      <div class="input-footer">
+        <span class="character-count" id="charCount">0 / 2000</span>
+        <button class="clear-chat-btn" id="clearChatBtn" title="Clear chat history">
+          Clear Chat
+        </button>
+      </div>
+    </div>
+
+    <!-- Footer with fun buttons -->
+    <footer class="sidebar-footer">
+      <button class="footer-btn" id="settingsToggleBtn">
+        <span class="btn-text">Settings</span>
+      </button>
+      <button class="footer-btn" id="exportChatBtn">
+        <span class="btn-text">Export</span>
+      </button>
+    </footer>
+  </div>
+
+  <script src="crypto-utils.js"></script>
+  <script src="sidebar.js"></script>
+</body>
+</html>

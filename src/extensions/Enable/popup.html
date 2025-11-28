@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AccessNow - ADHD Helper</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="popup-container">
+    <!-- Header -->
+    <header class="popup-header">
+      <div class="logo">
+        <span class="logo-icon">🧠</span>
+        <h1>AccessNow</h1>
+      </div>
+      <p class="tagline">ADHD Accessibility Tool</p>
+    </header>
+
+    <!-- Main Content -->
+    <main class="popup-main">
+      <!-- Feature Toggle -->
+      <section class="feature-section">
+        <div class="feature-header">
+          <div class="feature-info">
+            <h2>Text Simplification</h2>
+            <p class="feature-description">Right-click selected text to simplify</p>
+          </div>
+          <label class="toggle-switch">
+            <input type="checkbox" id="simplificationToggle" checked>
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+      </section>
+
+      <!-- Status Indicator -->
+      <section class="status-section">
+        <div class="status-indicator" id="statusIndicator">
+          <span class="status-dot active"></span>
+          <span class="status-text">Feature enabled</span>
+        </div>
+      </section>
+
+      <!-- Quick Actions -->
+      <section class="actions-section">
+        <h3>Quick Actions</h3>
+        <div class="action-buttons">
+          <button class="action-btn" id="openSidebarBtn">
+            <span class="btn-icon">🤖</span>
+            <span class="btn-text">Open AI Chatbot</span>
+          </button>
+          <button class="action-btn" id="settingsBtn">
+            <span class="btn-icon">⚙️</span>
+            <span class="btn-text">Settings</span>
+          </button>
+        </div>
+      </section>
+
+      <!-- Usage Instructions -->
+      <section class="info-section">
+        <h3>How to Use</h3>
+        <ol class="instruction-list">
+          <li>Select any text on a webpage</li>
+          <li>Right-click and choose "Simplify Text"</li>
+          <li>View simplified version side-by-side</li>
+          <li>Copy or ask AI for explanations</li>
+        </ol>
+      </section>
+
+      <!-- Statistics (Optional) -->
+      <section class="stats-section">
+        <h3>Today's Activity</h3>
+        <div class="stats-grid">
+          <div class="stat-item">
+            <div class="stat-value" id="simplificationCount">0</div>
+            <div class="stat-label">Simplifications</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-value" id="wordsSimplified">0</div>
+            <div class="stat-label">Words Processed</div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="popup-footer">
+      <p class="version">v1.0.0</p>
+      <a href="#" class="help-link" id="helpLink">Need Help?</a>
+    </footer>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

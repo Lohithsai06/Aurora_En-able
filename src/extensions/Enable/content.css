@@ -1,0 +1,321 @@
+/**
+ * Content Script Styles
+ * Styles for the simplification modal and notifications
+ */
+
+/* Modal overlay */
+.accessnow-modal {
+  position: absolute;
+  z-index: 999999;
+  background-color: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+  border-radius: 12px;
+  animation: accessnow-fadeIn 0.2s ease-out;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+}
+
+/* Modal content container */
+.accessnow-modal-content {
+  background: #ffffff;
+  border-radius: 12px;
+  padding: 0;
+  min-width: 600px;
+  max-width: 800px;
+  max-height: 80vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+/* Loading state */
+.accessnow-modal-content.loading {
+  padding: 40px;
+  text-align: center;
+  min-width: 300px;
+}
+
+/* Spinner animation */
+.accessnow-spinner {
+  border: 4px solid #f3f4f6;
+  border-top: 4px solid #3b82f6;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  animation: accessnow-spin 1s linear infinite;
+  margin: 0 auto 16px;
+}
+
+@keyframes accessnow-spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Modal header */
+.accessnow-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 24px;
+  border-bottom: 1px solid #e5e7eb;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+}
+
+.accessnow-modal-header h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+.accessnow-close-btn {
+  background: rgba(255, 255, 255, 0.2);
+  border: none;
+  color: white;
+  font-size: 28px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0;
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.2s;
+}
+
+.accessnow-close-btn:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+/* Comparison container */
+.accessnow-comparison {
+  display: flex;
+  gap: 1px;
+  background: #e5e7eb;
+  overflow: hidden;
+  flex: 1;
+  max-height: 60vh;
+}
+
+/* Text panels */
+.accessnow-text-panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background: white;
+}
+
+.accessnow-panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  background: #f9fafb;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.accessnow-label {
+  font-weight: 600;
+  font-size: 14px;
+  color: #374151;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+.accessnow-copy-btn {
+  background: #3b82f6;
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+.accessnow-copy-btn:hover {
+  background: #2563eb;
+}
+
+.accessnow-text-content {
+  padding: 16px;
+  overflow-y: auto;
+  line-height: 1.6;
+  color: #1f2937;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-size: 14px;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+
+.accessnow-text-content.original {
+  background: #fef3c7;
+}
+
+.accessnow-text-content.simplified {
+  background: #d1fae5;
+}
+
+/* Divider between panels */
+.accessnow-divider {
+  width: 2px;
+  background: #e5e7eb;
+}
+
+/* Modal footer */
+.accessnow-modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 16px 24px;
+  border-top: 1px solid #e5e7eb;
+  background: #f9fafb;
+}
+
+.accessnow-explain-btn,
+.accessnow-done-btn {
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: none;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+.accessnow-explain-btn {
+  background: #8b5cf6;
+  color: white;
+}
+
+.accessnow-explain-btn:hover {
+  background: #7c3aed;
+}
+
+.accessnow-done-btn {
+  background: #e5e7eb;
+  color: #374151;
+}
+
+.accessnow-done-btn:hover {
+  background: #d1d5db;
+}
+
+/* Notification styles */
+.accessnow-notification {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 1000000;
+  max-width: 400px;
+  animation: accessnow-slideIn 0.3s ease-out;
+}
+
+.accessnow-notification.error {
+  background: #fee2e2;
+  border-left: 4px solid #ef4444;
+}
+
+.accessnow-notification-content {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+}
+
+.accessnow-notification-icon {
+  font-size: 20px;
+  flex-shrink: 0;
+}
+
+.accessnow-notification-message {
+  flex: 1;
+  color: #374151;
+  font-size: 14px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+.accessnow-notification-close {
+  background: none;
+  border: none;
+  font-size: 20px;
+  color: #6b7280;
+  cursor: pointer;
+  padding: 0;
+  width: 24px;
+  height: 24px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.2s;
+}
+
+.accessnow-notification-close:hover {
+  background: #f3f4f6;
+}
+
+/* Animations */
+@keyframes accessnow-fadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes accessnow-slideIn {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .accessnow-modal-content {
+    min-width: 90vw;
+    max-width: 90vw;
+  }
+  
+  .accessnow-comparison {
+    flex-direction: column;
+  }
+  
+  .accessnow-divider {
+    width: 100%;
+    height: 2px;
+  }
+}
+
+/* Scrollbar styling */
+.accessnow-text-content::-webkit-scrollbar {
+  width: 8px;
+}
+
+.accessnow-text-content::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+.accessnow-text-content::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 4px;
+}
+
+.accessnow-text-content::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}
